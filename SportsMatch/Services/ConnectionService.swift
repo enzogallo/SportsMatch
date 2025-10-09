@@ -98,7 +98,12 @@ class ConnectionService: ObservableObject {
                     try await Task.sleep(nanoseconds: UInt64(APIConfig.retryDelay * 1_000_000_000))
                     
                     // Essayer de réveiller l'API avant la prochaine tentative
-                    try? await wakeUpAPI()
+                    do {
+                        try await wakeUpAPI()
+                    } catch {
+                        // Ignorer les erreurs de réveil, on va réessayer l'opération principale
+                        print("⚠️ Échec du réveil de l'API: \(error.localizedDescription)")
+                    }
                 }
             }
         }
