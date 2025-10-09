@@ -35,7 +35,18 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    uptime: process.uptime()
+  });
+});
+
+// Wake up endpoint (pour réveiller l'API sur Render)
+app.get('/api/wake', (req, res) => {
+  console.log('🌅 API réveillée à', new Date().toISOString());
+  res.json({ 
+    message: 'API réveillée avec succès',
+    timestamp: new Date().toISOString(),
+    status: 'awake'
   });
 });
 

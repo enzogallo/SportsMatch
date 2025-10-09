@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @StateObject private var authService = AuthService()
+    @StateObject private var connectionService = ConnectionService()
     @State private var selectedTab = 0
     @State private var showingCreateOffer = false
     
@@ -46,10 +47,19 @@ struct MainTabView: View {
                 }
                 .tag(3)
         }
-        .accentColor(.primaryBlue)
-        .sheet(isPresented: $showingCreateOffer) {
-            CreateOfferView()
-        }
+            .accentColor(.primaryBlue)
+            .sheet(isPresented: $showingCreateOffer) {
+                CreateOfferView()
+            }
+            .overlay(alignment: .topTrailing) {
+                // Indicateur de connexion
+                VStack {
+                    ConnectionStatusView()
+                    Spacer()
+                }
+                .padding(.top, 50)
+                .padding(.trailing, 16)
+            }
         .onAppear {
             // Configuration de l'apparence des onglets
             let appearance = UITabBarAppearance()

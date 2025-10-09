@@ -11,10 +11,17 @@ import Combine
 class APIService: ObservableObject {
     static let shared = APIService()
     
-    private let baseURL = "https://sportsmatch.onrender.com"
-    private let session = URLSession.shared
+    private let baseURL = APIConfig.baseURL
+    private let session: URLSession
     
-    private init() {}
+    init() {
+        // Configuration de la session avec timeout personnalisé
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = APIConfig.requestTimeout
+        config.timeoutIntervalForResource = APIConfig.requestTimeout * 2
+        self.session = URLSession(configuration: config)
+    }
+    
     
     // MARK: - Auth Endpoints
     

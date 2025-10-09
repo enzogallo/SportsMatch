@@ -17,6 +17,7 @@ class AuthService: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private let apiService = APIService.shared
+    private let connectionService = ConnectionService()
     private let tokenKey = "auth_token"
     
     init() {
@@ -29,7 +30,13 @@ class AuthService: ObservableObject {
         errorMessage = nil
         
         do {
-            let response = try await apiService.login(email: email, password: password)
+            // Vérifier la connexion d'abord
+            await connectionService.checkConnection()
+            
+            // Exécuter la connexion avec retry automatique
+            let response = try await connectionService.executeWithRetry {
+                try await self.apiService.login(email: email, password: password)
+            }
             
             // Sauvegarder le token
             UserDefaults.standard.set(response.token, forKey: tokenKey)
