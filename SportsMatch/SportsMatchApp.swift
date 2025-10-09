@@ -9,9 +9,18 @@ import SwiftUI
 
 @main
 struct SportsMatchApp: App {
+    @StateObject private var authService = AuthService()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group {
+                if authService.isAuthenticated {
+                    MainTabView()
+                } else {
+                    LoginView()
+                }
+            }
+            .environmentObject(authService)
         }
     }
 }
