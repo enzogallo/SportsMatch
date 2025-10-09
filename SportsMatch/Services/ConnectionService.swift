@@ -77,7 +77,11 @@ class ConnectionService: ObservableObject {
         // Réveiller l'API toutes les 10 minutes pour éviter qu'elle s'endorme
         wakeUpTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.wakeUpAPI()
+                do {
+                    try await self?.wakeUpAPI()
+                } catch {
+                    print("⚠️ Échec du réveil périodique de l'API: \(error.localizedDescription)")
+                }
             }
         }
     }
