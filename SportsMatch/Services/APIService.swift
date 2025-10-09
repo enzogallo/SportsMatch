@@ -11,7 +11,7 @@ import Combine
 class APIService: ObservableObject {
     static let shared = APIService()
     
-    private let baseURL = "https://sportsmatch-api.railway.app" // Remplacez par votre URL Railway
+    private let baseURL = "https://sportsmatch.onrender.com"
     private let session = URLSession.shared
     
     private init() {}
