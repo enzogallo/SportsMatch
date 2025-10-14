@@ -48,15 +48,13 @@ struct MessagesView: View {
                 if conversations.isEmpty {
                     EmptyMessagesView()
                 } else {
-                    NavigationView {
-                        ScrollView {
+                    ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(conversations) { conversation in
-                                    NavigationLink(destination: ConversationView(conversationId: conversation.id)) {
-                                        ConversationRow(conversation: conversation)
-                                    }
+                                NavigationLink(destination: ConversationView(conversation: conversation)) {
+                                    ConversationRow(conversation: conversation)
+                                }
                             }
-                        }
                         }
                     }
                 }

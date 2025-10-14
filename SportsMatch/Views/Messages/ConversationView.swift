@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct ConversationView: View {
-    let conversationId: UUID
+    let conversation: Conversation
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authService: AuthService
     @State private var messages: [Message] = []
     @State private var inputText: String = ""
     @State private var isSending: Bool = false
@@ -73,16 +74,16 @@ struct ConversationView: View {
     
     private func isOwn(_ message: Message) -> Bool {
         // Comparer avec l'utilisateur connecté
-        guard let currentUserId = UserDefaults.standard.string(forKey: "user_id") else { return false }
-        return message.senderId.uuidString == currentUserId
+        guard let currentUserId = authService.currentUser?.id else { return false }
+        return message.senderId == currentUserId
     }
     
     private func load() async {
         isLoading = true
         errorMessage = nil
         do {
-            guard let token = UserDefaults.standard.string(forKey: "auth_token") else { throw APIError.invalidCredentials }
-            let resp = try await api.getMessages(conversationId: conversationId, token: token)
+            guard let token = authService.getStoredToken() else { throw APIError.invalidCredentials }
+            let resp = try await api.getMessages(conversationId: conversation.id, token: token)
             messages = resp.messages
             isLoading = false
         } catch {
@@ -97,8 +98,9 @@ struct ConversationView: View {
         isSending = true
         errorMessage = nil
         do {
-            guard let token = UserDefaults.standard.string(forKey: "auth_token") else { throw APIError.invalidCredentials }
-            let resp = try await api.sendMessage(conversationId: conversationId, content: content, token: token)
+            guard let token = authService.getStoredToken(),
+                  let senderId = authService.currentUser?.id else { throw APIError.invalidCredentials }
+            let resp = try await api.sendMessage(conversationId: conversation.id, senderId: senderId, content: content, token: token)
             messages.append(resp.data)
             inputText = ""
             isSending = false
@@ -111,7 +113,13 @@ struct ConversationView: View {
 
 #Preview {
     NavigationView {
-        ConversationView(conversationId: UUID())
+        ConversationView(conversation: Conversation(
+            id: UUID(),
+            participantIds: [UUID(), UUID()],
+            lastMessage: nil,
+            lastActivityAt: Date(),
+            unreadCount: 0
+        ))
     }
 }
 

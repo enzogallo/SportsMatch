@@ -128,7 +128,7 @@ struct ApplicationView: View {
         isSubmitting = true
         errorMessage = nil
         do {
-            guard let token = UserDefaults.standard.string(forKey: "auth_token") else {
+            guard let token = authService.getStoredToken() else {
                 throw APIError.invalidCredentials
             }
             _ = try await api.applyToOffer(offerId: offer.id, message: message.isEmpty ? nil : message, token: token)

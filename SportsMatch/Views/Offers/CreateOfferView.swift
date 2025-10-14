@@ -270,13 +270,13 @@ struct CreateOfferView: View {
         )
         
         Task {
-            // Récupérer le token d'authentification
-            if let token = UserDefaults.standard.string(forKey: "auth_token") {
-                await offerService.createOffer(offer, token: token)
-            } else {
-                // Gérer le cas où il n'y a pas de token
+            guard let token = authService.getStoredToken() else {
                 print("❌ Aucun token d'authentification trouvé")
+                isSubmitting = false
+                return
             }
+            
+            await offerService.createOffer(offer, token: token)
             isSubmitting = false
             dismiss()
         }
