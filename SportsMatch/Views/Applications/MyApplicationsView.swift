@@ -83,7 +83,9 @@ struct ApplicationCard: View {
                 
                 Spacer()
                 
-                ApplicationStatusBadge(status: application.status)
+                if let status = application.status {
+                    ApplicationStatusBadge(status: status)
+                }
             }
             
             if let message = application.message, !message.isEmpty {
@@ -94,7 +96,7 @@ struct ApplicationCard: View {
             }
             
             HStack {
-                Text("Candidaté le \(application.createdAt, style: .date)")
+                Text("Candidaté le \(application.createdAt ?? Date(), style: .date)")
                     .font(.caption)
                     .foregroundColor(.textTertiary)
                 

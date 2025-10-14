@@ -77,14 +77,16 @@ struct MyOfferCard: View {
                         .font(.headline)
                         .foregroundColor(.textPrimary)
                     
-                    Text("\(offer.sport.displayName) • \(offer.city)")
+                    Text("\(offer.sport.displayName) • \(offer.city ?? "N/A")")
                         .font(.subheadline)
                         .foregroundColor(.textSecondary)
                 }
                 
                 Spacer()
                 
-                OfferStatusBadge(status: offer.status)
+                if let status = offer.status {
+                    OfferStatusBadge(status: status)
+                }
             }
             
             Text(offer.description)
@@ -93,13 +95,13 @@ struct MyOfferCard: View {
                 .lineLimit(3)
             
             HStack {
-                Text("\(offer.currentApplications) candidatures")
+                Text("\(offer.currentApplications ?? 0) candidatures")
                     .font(.caption)
                     .foregroundColor(.textTertiary)
                 
                 Spacer()
                 
-                Text("Publié le \(offer.createdAt, style: .date)")
+                Text("Publié le \(offer.createdAt ?? Date(), style: .date)")
                     .font(.caption)
                     .foregroundColor(.textTertiary)
             }
@@ -211,14 +213,16 @@ struct ApplicationDetailCard: View {
                         .font(.headline)
                         .foregroundColor(.textPrimary)
                     
-                    Text("Candidaté le \(application.createdAt, style: .date)")
+                    Text("Candidaté le \(application.createdAt ?? Date(), style: .date)")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
                 }
                 
                 Spacer()
                 
-                ApplicationStatusBadge(status: application.status)
+                if let status = application.status {
+                    ApplicationStatusBadge(status: status)
+                }
             }
             
             if let message = application.message, !message.isEmpty {

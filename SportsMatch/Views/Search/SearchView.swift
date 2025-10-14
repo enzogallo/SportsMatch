@@ -288,6 +288,7 @@ struct ClubsSearchView: View {
     let searchText: String
     let onViewProfile: (User) -> Void
     let onContact: (User) -> Void
+    let onCreateOffer: (() -> Void)?
     @State private var clubs: [User] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -299,7 +300,9 @@ struct ClubsSearchView: View {
                 EmptySearchView(
                     icon: "building.2",
                     title: searchText.isEmpty ? "Aucun club trouvé" : "Aucun résultat",
-                    description: searchText.isEmpty ? "Les clubs apparaîtront ici." : "Essayez avec d'autres mots-clés."
+                    description: searchText.isEmpty ? "Les clubs apparaîtront ici." : "Essayez avec d'autres mots-clés.",
+                    actionTitle: onCreateOffer != nil ? "Créer une offre" : nil,
+                    action: onCreateOffer
                 )
             } else {
                 ScrollView {
@@ -408,88 +411,9 @@ struct OffersSearchView: View {
             filteredOffers = offerService.offers.filter { offer in
                 offer.title.localizedCaseInsensitiveContains(searchText) ||
                 offer.description.localizedCaseInsensitiveContains(searchText) ||
-                offer.city.localizedCaseInsensitiveContains(searchText) ||
+                (offer.city?.localizedCaseInsensitiveContains(searchText) ?? false) ||
                 offer.sport.displayName.localizedCaseInsensitiveContains(searchText)
             }
-        }
-    }
-}
-
-struct ClubsSearchView: View {
-    let searchText: String
-    let onViewProfile: (User) -> Void
-    let onContact: (User) -> Void
-    let onCreateOffer: (() -> Void)?
-    @State private var clubs: [User] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    private let api = APIService.shared
-    
-    var body: some View {
-        Group {
-            if clubs.isEmpty && !isLoading {
-                EmptySearchView(
-                    icon: "building.2",
-                    title: searchText.isEmpty ? "Aucun club trouvé" : "Aucun résultat",
-                    description: searchText.isEmpty ? "Les clubs apparaîtront ici." : "Essayez avec d'autres mots-clés.",
-                    actionTitle: onCreateOffer != nil ? "Créer une offre" : nil,
-                    action: onCreateOffer
-                )
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(clubs) { club in
-                            ClubCard(
-                                club: club,
-                                onViewProfile: {
-                                    onViewProfile(club)
-                                },
-                                onContact: {
-                                    onContact(club)
-                                }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-                }
-            }
-        }
-        .onAppear {
-            Task { await loadClubs() }
-        }
-        .task(id: searchText) {
-            try? await Task.sleep(nanoseconds: 500_000_000) // Debounce
-            await loadClubs()
-        }
-        .overlay(
-            Group {
-                if isLoading { ProgressView().scaleEffect(1.2) }
-                if let errorMessage { Text(errorMessage).foregroundColor(.error) }
-            }
-        )
-    }
-    
-    private func loadClubs() async {
-        isLoading = true
-        errorMessage = nil
-        do {
-            let response = try await api.searchUsers(
-                filters: UserFilters(
-                    role: .club, 
-                    sport: nil, 
-                    city: searchText.isEmpty ? nil : searchText, 
-                    level: nil, 
-                    position: nil
-                ),
-                page: 1,
-                limit: 20
-            )
-            clubs = response.users
-            isLoading = false
-        } catch {
-            errorMessage = error.localizedDescription
-            isLoading = false
         }
     }
 }

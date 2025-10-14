@@ -595,7 +595,6 @@ struct MeResponse: Codable {
 
 struct OffersResponse: Codable {
     let offers: [Offer]
-    let pagination: Pagination
 }
 
 struct OfferDetailResponse: Codable {
@@ -705,7 +704,6 @@ struct UserFilters {
 
 struct ApplicationsResponse: Codable {
     let applications: [Application]
-    let pagination: Pagination
 }
 
 struct UserResponse: Codable {

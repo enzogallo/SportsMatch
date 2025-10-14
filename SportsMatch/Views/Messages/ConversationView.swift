@@ -98,9 +98,8 @@ struct ConversationView: View {
         isSending = true
         errorMessage = nil
         do {
-            guard let token = authService.getStoredToken(),
-                  let senderId = authService.currentUser?.id else { throw APIError.invalidCredentials }
-            let resp = try await api.sendMessage(conversationId: conversation.id, senderId: senderId, content: content, token: token)
+            guard let token = authService.getStoredToken() else { throw APIError.invalidCredentials }
+            let resp = try await api.sendMessage(conversationId: conversation.id, content: content, token: token)
             messages.append(resp.data)
             inputText = ""
             isSending = false

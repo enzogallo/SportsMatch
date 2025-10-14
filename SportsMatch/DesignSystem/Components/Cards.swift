@@ -28,7 +28,7 @@ struct OfferCard: View {
                 
                 Spacer()
                 
-                if offer.isUrgent {
+                if offer.isUrgent == true {
                     Text("URGENT")
                         .font(.caption2)
                         .fontWeight(.bold)
@@ -62,7 +62,9 @@ struct OfferCard: View {
                     InfoRow(icon: "star.fill", text: level.displayName)
                 }
                 
-                InfoRow(icon: "location.fill", text: "\(offer.city), \(offer.location)")
+                if let city = offer.city, let location = offer.location {
+                    InfoRow(icon: "location.fill", text: "\(city), \(location)")
+                }
                 
                 if let ageRange = offer.ageRange {
                     InfoRow(icon: "calendar", text: ageRange.displayName)
@@ -78,7 +80,7 @@ struct OfferCard: View {
                             .foregroundColor(.textTertiary)
                     }
                     
-                    Text(offer.createdAt, style: .relative)
+                    Text(offer.createdAt ?? Date(), style: .relative)
                         .font(.caption2)
                         .foregroundColor(.textTertiary)
                 }

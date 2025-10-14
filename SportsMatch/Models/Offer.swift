@@ -55,19 +55,19 @@ struct Offer: Identifiable, Codable {
     var sport: Sport
     var position: String?
     var level: SkillLevel?
-    var type: OfferType
-    var location: String
-    var city: String
+    var type: OfferType?
+    var location: String?
+    var city: String?
     var ageRange: AgeRange?
-    var isUrgent: Bool
-    var status: OfferStatus
-    var createdAt: Date
-    var updatedAt: Date
+    var isUrgent: Bool?
+    var status: OfferStatus?
+    var createdAt: Date?
+    var updatedAt: Date?
     var expiresAt: Date?
     var maxApplications: Int?
-    var currentApplications: Int
+    var currentApplications: Int?
     
-    init(id: UUID = UUID(), clubId: UUID, title: String, description: String, sport: Sport, location: String, city: String) {
+    init(id: UUID = UUID(), clubId: UUID, title: String, description: String, sport: Sport, location: String? = nil, city: String? = nil) {
         self.id = id
         self.clubId = clubId
         self.title = title
@@ -98,9 +98,9 @@ struct Application: Identifiable, Codable {
     let offerId: UUID
     let playerId: UUID
     var message: String?
-    var status: ApplicationStatus
-    var createdAt: Date
-    var updatedAt: Date
+    var status: ApplicationStatus?
+    var createdAt: Date?
+    var updatedAt: Date?
     
     // Computed properties for display
     var offerTitle: String {

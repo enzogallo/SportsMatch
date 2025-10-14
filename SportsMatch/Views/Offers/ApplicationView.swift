@@ -37,9 +37,11 @@ struct ApplicationView: View {
                                     .fontWeight(.semibold)
                                     .foregroundColor(.textPrimary)
                                 
-                                Text("\(offer.city), \(offer.location)")
-                                    .font(.caption)
-                                    .foregroundColor(.textSecondary)
+                                if let city = offer.city, let location = offer.location {
+                                    Text("\(city), \(location)")
+                                        .font(.caption)
+                                        .foregroundColor(.textSecondary)
+                                }
                             }
                             
                             Spacer()

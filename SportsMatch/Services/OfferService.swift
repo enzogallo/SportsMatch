@@ -45,12 +45,12 @@ class OfferService: ObservableObject {
                 sport: offer.sport.rawValue,
                 position: offer.position,
                 level: offer.level?.rawValue,
-                type: offer.type.rawValue,
-                location: offer.location,
-                city: offer.city,
+                type: offer.type?.rawValue ?? "recruitment",
+                location: offer.location ?? "",
+                city: offer.city ?? "",
                 min_age: offer.ageRange?.min,
                 max_age: offer.ageRange?.max,
-                is_urgent: offer.isUrgent,
+                is_urgent: offer.isUrgent ?? false,
                 max_applications: offer.maxApplications
             )
             

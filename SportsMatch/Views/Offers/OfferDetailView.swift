@@ -50,9 +50,11 @@ struct OfferDetailView: View {
                                 .foregroundColor(.textPrimary)
                             
                             HStack(spacing: 12) {
-                                OfferStatusBadge(status: current.status)
+                                if let status = current.status {
+                                    OfferStatusBadge(status: status)
+                                }
                                 
-                                if current.isUrgent {
+                                if current.isUrgent == true {
                                     Text("URGENT")
                                         .font(.caption2)
                                         .fontWeight(.bold)
@@ -230,15 +232,19 @@ struct OfferDetailsCard: View {
                     DetailRow(icon: "star.fill", title: "Niveau", value: level.displayName)
                 }
                 
-                DetailRow(icon: "location.fill", title: "Lieu", value: "\(offer.city), \(offer.location)")
+                if let city = offer.city, let location = offer.location {
+                    DetailRow(icon: "location.fill", title: "Lieu", value: "\(city), \(location)")
+                }
                 
                 if let ageRange = offer.ageRange {
                     DetailRow(icon: "calendar", title: "Âge", value: ageRange.displayName)
                 }
                 
-                DetailRow(icon: "clock", title: "Type", value: offer.type.displayName)
+                if let type = offer.type {
+                    DetailRow(icon: "clock", title: "Type", value: type.displayName)
+                }
                 
-                DetailRow(icon: "person.2.fill", title: "Candidatures", value: "\(offer.currentApplications) candidatures")
+                DetailRow(icon: "person.2.fill", title: "Candidatures", value: "\(offer.currentApplications ?? 0) candidatures")
             }
         }
         .padding(20)
