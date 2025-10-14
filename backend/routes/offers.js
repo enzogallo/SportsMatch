@@ -285,4 +285,41 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Get my offers (club owner only)
+router.get('/my', authenticateToken, async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (user.role !== 'club') {
+      return res.status(403).json({ error: 'Only clubs can view their offers' });
+    }
+
+    const { data: offers, error } = await supabase
+      .from('offers')
+      .select(`
+        *,
+        club:users!offers_club_id_fkey(
+          id,
+          name,
+          club_name,
+          city,
+          location
+        )
+      `)
+      .eq('club_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching my offers:', error);
+      return res.status(500).json({ error: 'Failed to fetch offers' });
+    }
+
+    res.json({ offers: offers || [] });
+
+  } catch (error) {
+    console.error('My offers error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
