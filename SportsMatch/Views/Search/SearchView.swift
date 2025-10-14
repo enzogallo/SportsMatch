@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SearchView: View {
+    @EnvironmentObject var authService: AuthService
     @State private var searchText = ""
     @State private var selectedTab = 0
     @State private var showingFilters = false
@@ -19,6 +20,7 @@ struct SearchView: View {
     @State private var showingOfferDetail = false
     @State private var showingApplication = false
     @State private var showingNewConversation = false
+    @State private var showingCreateOffer = false
     
     var body: some View {
         NavigationView {
@@ -103,7 +105,10 @@ struct SearchView: View {
                             onContact: { club in
                                 selectedClub = club
                                 showingNewConversation = true
-                            }
+                            },
+                            onCreateOffer: authService.currentUser?.role == .club ? {
+                                showingCreateOffer = true
+                            } : nil
                         )
                     case 2:
                         OffersSearchView(
@@ -155,6 +160,10 @@ struct SearchView: View {
                     selectedClub = nil
                 }
             )
+        }
+        .sheet(isPresented: $showingCreateOffer) {
+            CreateOfferView()
+                .environmentObject(authService)
         }
     }
 }
@@ -406,6 +415,85 @@ struct OffersSearchView: View {
     }
 }
 
+struct ClubsSearchView: View {
+    let searchText: String
+    let onViewProfile: (User) -> Void
+    let onContact: (User) -> Void
+    let onCreateOffer: (() -> Void)?
+    @State private var clubs: [User] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    private let api = APIService.shared
+    
+    var body: some View {
+        Group {
+            if clubs.isEmpty && !isLoading {
+                EmptySearchView(
+                    icon: "building.2",
+                    title: searchText.isEmpty ? "Aucun club trouvé" : "Aucun résultat",
+                    description: searchText.isEmpty ? "Les clubs apparaîtront ici." : "Essayez avec d'autres mots-clés.",
+                    actionTitle: onCreateOffer != nil ? "Créer une offre" : nil,
+                    action: onCreateOffer
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        ForEach(clubs) { club in
+                            ClubCard(
+                                club: club,
+                                onViewProfile: {
+                                    onViewProfile(club)
+                                },
+                                onContact: {
+                                    onContact(club)
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
+                }
+            }
+        }
+        .onAppear {
+            Task { await loadClubs() }
+        }
+        .task(id: searchText) {
+            try? await Task.sleep(nanoseconds: 500_000_000) // Debounce
+            await loadClubs()
+        }
+        .overlay(
+            Group {
+                if isLoading { ProgressView().scaleEffect(1.2) }
+                if let errorMessage { Text(errorMessage).foregroundColor(.error) }
+            }
+        )
+    }
+    
+    private func loadClubs() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let response = try await api.searchUsers(
+                filters: UserFilters(
+                    role: .club, 
+                    sport: nil, 
+                    city: searchText.isEmpty ? nil : searchText, 
+                    level: nil, 
+                    position: nil
+                ),
+                page: 1,
+                limit: 20
+            )
+            clubs = response.users
+            isLoading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
+    }
+}
+
 struct ClubCard: View {
     let club: User
     let onViewProfile: () -> Void
@@ -481,9 +569,19 @@ struct EmptySearchView: View {
     let icon: String
     let title: String
     let description: String
+    let actionTitle: String?
+    let action: (() -> Void)?
+    
+    init(icon: String, title: String, description: String, actionTitle: String? = nil, action: (() -> Void)? = nil) {
+        self.icon = icon
+        self.title = title
+        self.description = description
+        self.actionTitle = actionTitle
+        self.action = action
+    }
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: icon)
                 .font(.system(size: 60))
                 .foregroundColor(.textTertiary)
@@ -498,6 +596,14 @@ struct EmptySearchView: View {
                 .foregroundColor(.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
+            
+            if let actionTitle = actionTitle, let action = action {
+                Button(actionTitle) {
+                    action()
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(.top, 8)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

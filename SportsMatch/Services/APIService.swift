@@ -712,6 +712,106 @@ struct UserResponse: Codable {
     let user: User
 }
 
+// MARK: - Messages Endpoints
+
+func getConversations(token: String) async throws -> ConversationsResponse {
+    let url = URL(string: "\(baseURL)/api/messages/conversations")!
+    var request = URLRequest(url: url)
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    
+    let (data, response) = try await session.data(for: request)
+    
+    guard let httpResponse = response as? HTTPURLResponse,
+          httpResponse.statusCode == 200 else {
+        throw APIError.invalidResponse
+    }
+    
+    return try makeDecoder().decode(ConversationsResponse.self, from: data)
+}
+
+func getMessages(conversationId: UUID, token: String) async throws -> MessagesResponse {
+    let url = URL(string: "\(baseURL)/api/messages/conversations/\(conversationId)/messages")!
+    var request = URLRequest(url: url)
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    
+    let (data, response) = try await session.data(for: request)
+    
+    guard let httpResponse = response as? HTTPURLResponse,
+          httpResponse.statusCode == 200 else {
+        throw APIError.invalidResponse
+    }
+    
+    return try makeDecoder().decode(MessagesResponse.self, from: data)
+}
+
+func sendMessage(conversationId: UUID, senderId: UUID, content: String, token: String) async throws -> MessageResponse {
+    let url = URL(string: "\(baseURL)/api/messages/conversations/\(conversationId)/messages")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    
+    let requestBody = SendMessageRequest(senderId: senderId, content: content)
+    request.httpBody = try JSONEncoder().encode(requestBody)
+    
+    let (data, response) = try await session.data(for: request)
+    
+    guard let httpResponse = response as? HTTPURLResponse,
+          httpResponse.statusCode == 201 else {
+        throw APIError.invalidResponse
+    }
+    
+    return try makeDecoder().decode(MessageResponse.self, from: data)
+}
+
+func createConversation(participantId: UUID, token: String) async throws -> ConversationResponse {
+    let url = URL(string: "\(baseURL)/api/messages/conversations")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    
+    let requestBody = CreateConversationRequest(participantId: participantId)
+    request.httpBody = try JSONEncoder().encode(requestBody)
+    
+    let (data, response) = try await session.data(for: request)
+    
+    guard let httpResponse = response as? HTTPURLResponse,
+          httpResponse.statusCode == 201 else {
+        throw APIError.invalidResponse
+    }
+    
+    return try makeDecoder().decode(ConversationResponse.self, from: data)
+}
+
+// MARK: - Message Request/Response Models
+
+struct SendMessageRequest: Codable {
+    let senderId: UUID
+    let content: String
+}
+
+struct CreateConversationRequest: Codable {
+    let participantId: UUID
+}
+
+struct ConversationsResponse: Codable {
+    let conversations: [Conversation]
+}
+
+struct MessagesResponse: Codable {
+    let messages: [Message]
+}
+
+struct MessageResponse: Codable {
+    let message: String
+    let data: Message
+}
+
+struct ConversationResponse: Codable {
+    let message: String
+    let data: Conversation
+}
 
 // MARK: - Errors
 

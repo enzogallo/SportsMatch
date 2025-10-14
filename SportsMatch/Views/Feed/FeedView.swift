@@ -78,10 +78,37 @@ struct FeedView: View {
                 
                 // Liste des offres
                 if offerService.isLoading {
-                    Spacer()
-                    ProgressView("Chargement des offres...")
-                        .foregroundColor(.textSecondary)
-                    Spacer()
+                    VStack(spacing: 16) {
+                        Spacer()
+                        ProgressView()
+                            .scaleEffect(1.2)
+                        Text("Chargement des offres...")
+                            .font(.callout)
+                            .foregroundColor(.textSecondary)
+                        Spacer()
+                    }
+                } else if let errorMessage = offerService.errorMessage {
+                    VStack(spacing: 16) {
+                        Spacer()
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 50))
+                            .foregroundColor(.error)
+                        Text("Erreur de chargement")
+                            .font(.headline)
+                            .foregroundColor(.textPrimary)
+                        Text(errorMessage)
+                            .font(.callout)
+                            .foregroundColor(.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                        Button("Réessayer") {
+                            Task {
+                                await offerService.loadOffers()
+                            }
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        Spacer()
+                    }
                 } else if offerService.offers.isEmpty {
                     EmptyStateView(
                         icon: "sportscourt",
@@ -114,6 +141,19 @@ struct FeedView: View {
             .navigationTitle("SportsMatch")
             .navigationBarTitleDisplayMode(.large)
             .background(Color.background)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        Task {
+                            await offerService.loadOffers()
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.primaryBlue)
+                    }
+                    .disabled(offerService.isLoading)
+                }
+            }
         }
         .sheet(isPresented: $showingFilters) {
             FiltersView()
