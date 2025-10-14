@@ -36,12 +36,20 @@ class APIService: ObservableObject {
         
         let (data, response) = try await session.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 201 else {
-            throw APIError.invalidResponse
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.networkError
         }
         
-        return try JSONDecoder().decode(AuthResponse.self, from: data)
+        if httpResponse.statusCode == 201 {
+            return try JSONDecoder().decode(AuthResponse.self, from: data)
+        } else {
+            // Essayer de décoder le message d'erreur du serveur
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw APIError.serverError(errorResponse.error)
+            } else {
+                throw APIError.invalidResponse
+            }
+        }
     }
     
     func login(email: String, password: String) async throws -> AuthResponse {
@@ -351,6 +359,10 @@ struct Pagination: Codable {
     let pages: Int
 }
 
+struct ErrorResponse: Codable {
+    let error: String
+}
+
 struct UserFilters {
     let role: UserRole?
     let sport: Sport?
@@ -366,6 +378,7 @@ enum APIError: Error, LocalizedError {
     case invalidCredentials
     case networkError
     case decodingError
+    case serverError(String)
     
     var errorDescription: String? {
         switch self {
@@ -377,6 +390,8 @@ enum APIError: Error, LocalizedError {
             return "Erreur de connexion réseau"
         case .decodingError:
             return "Erreur de décodage des données"
+        case .serverError(let message):
+            return message
         }
     }
 }

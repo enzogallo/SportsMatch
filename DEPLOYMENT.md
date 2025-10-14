@@ -48,10 +48,10 @@ Ce guide vous accompagne pour déployer votre application SportsMatch complète 
 ### 2.3 Configurer les variables d'environnement
 Dans Railway, ajoutez ces variables :
 ```
-SUPABASE_URL=https://votre-projet.supabase.co
-SUPABASE_ANON_KEY=votre_cle_anon
-SUPABASE_SERVICE_ROLE_KEY=votre_cle_service
-JWT_SECRET=votre_secret_jwt_tres_securise
+SUPABASE_URL=https://qqcjlzuxvykynapjnhbi.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxY2psenV4dnlreW5hcGpuaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMTk4OTMsImV4cCI6MjA3NTU5NTg5M30.fjKJ6VEi4bj_av4fXpL727DzfmAL-6sfzd2ZjqOmuSw
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxY2psenV4dnlreW5hcGpuaGJpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDAxOTg5MywiZXhwIjoyMDc1NTk1ODkzfQ.KojVuwwD2ZCGbXVyGHM0ZwE-TBNMf-yieCn5OT9VJsU
+JWT_SECRET=BSzHuxMfZwfwT7p7ic+ME19hO73zs/Vcb8K8SUSumQe58SFRvZT1ZYubghQmzriI3KvaAaGk/no8IBXLW3FZ9A==
 NODE_ENV=production
 CORS_ORIGIN=*
 ```

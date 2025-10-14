@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { supabase } = require('../config/database');
+const { supabase, supabaseAdmin } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -24,8 +24,8 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Role must be player or club' });
     }
 
-    // Check if user already exists
-    const { data: existingUser } = await supabase
+    // Check if user already exists (use admin client to bypass RLS)
+    const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id')
       .eq('email', email)
@@ -38,8 +38,8 @@ router.post('/register', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const { data: user, error } = await supabase
+    // Create user (use admin client to bypass RLS)
+    const { data: user, error } = await supabaseAdmin
       .from('users')
       .insert([{
         email,
@@ -54,7 +54,7 @@ router.post('/register', async (req, res) => {
 
     if (error) {
       console.error('Registration error:', error);
-      return res.status(500).json({ error: 'Failed to create user' });
+      return res.status(500).json({ error: 'Failed to create user', details: error.message || error });
     }
 
     // Generate JWT token

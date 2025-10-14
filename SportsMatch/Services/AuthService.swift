@@ -55,7 +55,13 @@ class AuthService: ObservableObject {
         errorMessage = nil
         
         do {
-            let response = try await apiService.register(email: email, password: password, name: name, role: role)
+            // Vérifier la connexion d'abord
+            await connectionService.checkConnection()
+            
+            // Exécuter l'inscription avec retry automatique
+            let response = try await connectionService.executeWithRetry {
+                try await self.apiService.register(email: email, password: password, name: name, role: role)
+            }
             
             // Sauvegarder le token
             UserDefaults.standard.set(response.token, forKey: tokenKey)
