@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SignUpView: View {
-    @StateObject private var authService = AuthService()
+    @EnvironmentObject var authService: AuthService
     @Environment(\.dismiss) private var dismiss
     
     @State private var email = ""

@@ -22,6 +22,28 @@ class APIService: ObservableObject {
         self.session = URLSession(configuration: config)
     }
     
+    // Décodeur JSON commun avec stratégies adaptées aux réponses du backend
+    private func makeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            // Essaye ISO8601 avec fractions, puis sans
+            let isoWithFraction = ISO8601DateFormatter()
+            isoWithFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = isoWithFraction.date(from: dateString) { return d }
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime]
+            if let d = iso.date(from: dateString) { return d }
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(codingPath: decoder.codingPath,
+                                      debugDescription: "Invalid ISO8601 date: \(dateString)")
+            )
+        }
+        return decoder
+    }
+    
     
     // MARK: - Auth Endpoints
     
@@ -41,10 +63,10 @@ class APIService: ObservableObject {
         }
         
         if httpResponse.statusCode == 201 {
-            return try JSONDecoder().decode(AuthResponse.self, from: data)
+            return try makeDecoder().decode(AuthResponse.self, from: data)
         } else {
             // Essayer de décoder le message d'erreur du serveur
-            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+            if let errorResponse = try? makeDecoder().decode(ErrorResponse.self, from: data) {
                 throw APIError.serverError(errorResponse.error)
             } else {
                 throw APIError.invalidResponse
@@ -68,7 +90,7 @@ class APIService: ObservableObject {
             throw APIError.invalidCredentials
         }
         
-        return try JSONDecoder().decode(AuthResponse.self, from: data)
+        return try makeDecoder().decode(AuthResponse.self, from: data)
     }
     
     func getCurrentUser(token: String) async throws -> User {
@@ -83,7 +105,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        let authResponse = try JSONDecoder().decode(MeResponse.self, from: data)
+        let authResponse = try makeDecoder().decode(MeResponse.self, from: data)
         return authResponse.user
     }
     
@@ -120,7 +142,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(OffersResponse.self, from: data)
+        return try makeDecoder().decode(OffersResponse.self, from: data)
     }
     
     func getOffer(id: UUID, token: String? = nil) async throws -> OfferDetailResponse {
@@ -138,7 +160,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(OfferDetailResponse.self, from: data)
+        return try makeDecoder().decode(OfferDetailResponse.self, from: data)
     }
     
     func createOffer(_ offer: CreateOfferRequest, token: String) async throws -> OfferResponse {
@@ -157,7 +179,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(OfferResponse.self, from: data)
+        return try makeDecoder().decode(OfferResponse.self, from: data)
     }
     
     // MARK: - Applications Endpoints
@@ -174,7 +196,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(ApplicationsResponse.self, from: data)
+        return try makeDecoder().decode(ApplicationsResponse.self, from: data)
     }
     
     func applyToOffer(offerId: UUID, message: String?, token: String) async throws -> ApplicationResponse {
@@ -194,7 +216,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(ApplicationResponse.self, from: data)
+        return try makeDecoder().decode(ApplicationResponse.self, from: data)
     }
     
     // MARK: - Users Endpoints
@@ -233,7 +255,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(UsersResponse.self, from: data)
+        return try makeDecoder().decode(UsersResponse.self, from: data)
     }
     
     func updateUser(id: UUID, user: UpdateUserRequest, token: String) async throws -> UserResponse {
@@ -252,7 +274,7 @@ class APIService: ObservableObject {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(UserResponse.self, from: data)
+        return try makeDecoder().decode(UserResponse.self, from: data)
     }
 }
 

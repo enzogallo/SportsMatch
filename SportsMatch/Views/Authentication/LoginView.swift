@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct LoginView: View {
-    @StateObject private var authService = AuthService()
+    @EnvironmentObject var authService: AuthService
     @State private var email = ""
     @State private var password = ""
     @State private var showingSignUp = false
@@ -90,6 +90,7 @@ struct LoginView: View {
         }
         .sheet(isPresented: $showingSignUp) {
             SignUpView()
+                .environmentObject(authService)
         }
         .onChange(of: authService.isAuthenticated) { isAuthenticated in
             if isAuthenticated {
