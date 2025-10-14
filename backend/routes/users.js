@@ -147,7 +147,8 @@ router.get('/', async (req, res) => {
         club_logo_url,
         location,
         status,
-        created_at
+        created_at,
+        updated_at
       `)
       .order('created_at', { ascending: false });
 

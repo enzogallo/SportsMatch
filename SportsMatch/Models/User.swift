@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum UserRole: String, CaseIterable, Codable {
+enum UserRole: String, CaseIterable, Codable, Equatable {
     case player = "player"
     case club = "club"
     
@@ -21,7 +21,7 @@ enum UserRole: String, CaseIterable, Codable {
     }
 }
 
-enum UserStatus: String, CaseIterable, Codable {
+enum UserStatus: String, CaseIterable, Codable, Equatable {
     case available = "available"
     case busy = "busy"
     case looking = "looking"
@@ -38,14 +38,14 @@ enum UserStatus: String, CaseIterable, Codable {
     }
 }
 
-struct User: Identifiable, Codable {
+struct User: Identifiable, Codable, Equatable {
     let id: UUID
-    var email: String
+    var email: String?
     var name: String
     var profileImageURL: String?
     var role: UserRole
     var createdAt: Date
-    var updatedAt: Date
+    var updatedAt: Date?
     
     // Player specific fields
     var age: Int?
@@ -66,7 +66,7 @@ struct User: Identifiable, Codable {
     var sportsOffered: [Sport]?
     var location: String?
     
-    init(id: UUID = UUID(), email: String, name: String, role: UserRole) {
+    init(id: UUID = UUID(), email: String? = nil, name: String, role: UserRole) {
         self.id = id
         self.email = email
         self.name = name
@@ -76,7 +76,7 @@ struct User: Identifiable, Codable {
     }
 }
 
-enum Sport: String, CaseIterable, Codable {
+enum Sport: String, CaseIterable, Codable, Equatable {
     case football = "football"
     case basketball = "basketball"
     case tennis = "tennis"
@@ -164,7 +164,7 @@ enum Sport: String, CaseIterable, Codable {
     }
 }
 
-enum SkillLevel: String, CaseIterable, Codable {
+enum SkillLevel: String, CaseIterable, Codable, Equatable {
     case beginner = "beginner"
     case intermediate = "intermediate"
     case advanced = "advanced"

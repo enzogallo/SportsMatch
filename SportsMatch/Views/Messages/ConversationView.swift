@@ -99,7 +99,7 @@ struct ConversationView: View {
         do {
             guard let token = UserDefaults.standard.string(forKey: "auth_token") else { throw APIError.invalidCredentials }
             let resp = try await api.sendMessage(conversationId: conversationId, content: content, token: token)
-            messages.append(resp.message)
+            messages.append(resp.data)
             inputText = ""
             isSending = false
         } catch {

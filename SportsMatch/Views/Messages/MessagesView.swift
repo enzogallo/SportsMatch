@@ -12,6 +12,7 @@ struct MessagesView: View {
     @State private var searchText = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showingNewConversation = false
     private let api = APIService.shared
     
     var body: some View {
@@ -66,7 +67,7 @@ struct MessagesView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        // Créer une nouvelle conversation
+                        showingNewConversation = true
                     } label: {
                         Image(systemName: "square.and.pencil")
                     }
@@ -81,6 +82,16 @@ struct MessagesView: View {
         )
         .task {
             await loadConversations()
+        }
+        .sheet(isPresented: $showingNewConversation) {
+            NewConversationView(
+                participant: nil,
+                onDismiss: {
+                    Task {
+                        await loadConversations()
+                    }
+                }
+            )
         }
     }
     

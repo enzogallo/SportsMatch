@@ -44,9 +44,24 @@ class AuthService: ObservableObject {
             currentUser = response.user
             isAuthenticated = true
             isLoading = false
+            
+            // Log successful authentication
+            LoggingService.shared.logAuthEvent(
+                event: "Sign In",
+                userId: response.user.id,
+                success: true
+            )
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+            
+            // Log failed authentication
+            LoggingService.shared.logAuthEvent(
+                event: "Sign In",
+                userId: nil,
+                success: false,
+                error: error
+            )
         }
     }
     
@@ -69,9 +84,24 @@ class AuthService: ObservableObject {
             currentUser = response.user
             isAuthenticated = true
             isLoading = false
+            
+            // Log successful registration
+            LoggingService.shared.logAuthEvent(
+                event: "Sign Up",
+                userId: response.user.id,
+                success: true
+            )
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+            
+            // Log failed registration
+            LoggingService.shared.logAuthEvent(
+                event: "Sign Up",
+                userId: nil,
+                success: false,
+                error: error
+            )
         }
     }
     
@@ -142,7 +172,7 @@ class AuthService: ObservableObject {
         }
     }
     
-    private func getStoredToken() -> String? {
+    func getStoredToken() -> String? {
         return UserDefaults.standard.string(forKey: tokenKey)
     }
 }

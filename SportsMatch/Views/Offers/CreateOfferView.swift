@@ -10,6 +10,7 @@ import SwiftUI
 struct CreateOfferView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var offerService = OfferService()
+    @EnvironmentObject var authService: AuthService
     
     @State private var title = ""
     @State private var description = ""
@@ -258,8 +259,9 @@ struct CreateOfferView: View {
     private func createOffer() {
         isSubmitting = true
         
+        guard let clubId = authService.currentUser?.id else { isSubmitting = false; return }
         let offer = Offer(
-            clubId: UUID(), // Remplacer par l'ID du club connecté
+            clubId: clubId,
             title: title,
             description: description,
             sport: selectedSport,

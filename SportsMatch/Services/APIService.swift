@@ -48,7 +48,8 @@ class APIService: ObservableObject {
     // MARK: - Auth Endpoints
     
     func register(email: String, password: String, name: String, role: UserRole) async throws -> AuthResponse {
-        let url = URL(string: "\(baseURL)/api/auth/register")!
+        let endpoint = "/api/auth/register"
+        let url = URL(string: "\(baseURL)\(endpoint)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -56,26 +57,81 @@ class APIService: ObservableObject {
         let body = RegisterRequest(email: email, password: password, name: name, role: role.rawValue)
         request.httpBody = try JSONEncoder().encode(body)
         
+        // Log request
+        LoggingService.shared.logAPIRequest(
+            endpoint: endpoint,
+            method: "POST",
+            headers: request.allHTTPHeaderFields,
+            body: request.httpBody
+        )
+        
+        let startTime = Date()
         let (data, response) = try await session.data(for: request)
+        let duration = Date().timeIntervalSince(startTime)
         
         guard let httpResponse = response as? HTTPURLResponse else {
+            LoggingService.shared.logAPIError(
+                endpoint: endpoint,
+                method: "POST",
+                statusCode: nil,
+                error: APIError.networkError,
+                requestData: request.httpBody,
+                responseData: data
+            )
             throw APIError.networkError
         }
+        
+        // Log response
+        LoggingService.shared.logAPIResponse(
+            endpoint: endpoint,
+            method: "POST",
+            statusCode: httpResponse.statusCode,
+            responseData: data,
+            duration: duration
+        )
         
         if httpResponse.statusCode == 201 {
             return try makeDecoder().decode(AuthResponse.self, from: data)
         } else {
             // Essayer de décoder le message d'erreur du serveur
             if let errorResponse = try? makeDecoder().decode(ErrorResponse.self, from: data) {
-                throw APIError.serverError(errorResponse.error)
+                let error = APIError.serverError(errorResponse.error)
+                LoggingService.shared.logAPIError(
+                    endpoint: endpoint,
+                    method: "POST",
+                    statusCode: httpResponse.statusCode,
+                    error: error,
+                    requestData: request.httpBody,
+                    responseData: data,
+                    additionalInfo: [
+                        "error_details": errorResponse.error,
+                        "user_email": email,
+                        "user_role": role.rawValue
+                    ]
+                )
+                throw error
             } else {
-                throw APIError.invalidResponse
+                let error = APIError.invalidResponse
+                LoggingService.shared.logAPIError(
+                    endpoint: endpoint,
+                    method: "POST",
+                    statusCode: httpResponse.statusCode,
+                    error: error,
+                    requestData: request.httpBody,
+                    responseData: data,
+                    additionalInfo: [
+                        "user_email": email,
+                        "user_role": role.rawValue
+                    ]
+                )
+                throw error
             }
         }
     }
     
     func login(email: String, password: String) async throws -> AuthResponse {
-        let url = URL(string: "\(baseURL)/api/auth/login")!
+        let endpoint = "/api/auth/login"
+        let url = URL(string: "\(baseURL)\(endpoint)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -83,11 +139,53 @@ class APIService: ObservableObject {
         let body = LoginRequest(email: email, password: password)
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await session.data(for: request)
+        // Log request
+        LoggingService.shared.logAPIRequest(
+            endpoint: endpoint,
+            method: "POST",
+            headers: request.allHTTPHeaderFields,
+            body: request.httpBody
+        )
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidCredentials
+        let startTime = Date()
+        let (data, response) = try await session.data(for: request)
+        let duration = Date().timeIntervalSince(startTime)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            LoggingService.shared.logAPIError(
+                endpoint: endpoint,
+                method: "POST",
+                statusCode: nil,
+                error: APIError.networkError,
+                requestData: request.httpBody,
+                responseData: data
+            )
+            throw APIError.networkError
+        }
+        
+        // Log response
+        LoggingService.shared.logAPIResponse(
+            endpoint: endpoint,
+            method: "POST",
+            statusCode: httpResponse.statusCode,
+            responseData: data,
+            duration: duration
+        )
+        
+        guard httpResponse.statusCode == 200 else {
+            let error = APIError.invalidCredentials
+            LoggingService.shared.logAPIError(
+                endpoint: endpoint,
+                method: "POST",
+                statusCode: httpResponse.statusCode,
+                error: error,
+                requestData: request.httpBody,
+                responseData: data,
+                additionalInfo: [
+                    "user_email": email
+                ]
+            )
+            throw error
         }
         
         return try makeDecoder().decode(AuthResponse.self, from: data)
@@ -107,6 +205,107 @@ class APIService: ObservableObject {
         
         let authResponse = try makeDecoder().decode(MeResponse.self, from: data)
         return authResponse.user
+    }
+    
+    // MARK: - Users Endpoints
+    
+    func searchUsers(filters: UserFilters, page: Int = 1, limit: Int = 20) async throws -> UsersResponse {
+        let endpoint = "/api/users"
+        var components = URLComponents(string: "\(baseURL)\(endpoint)")!
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "page", value: "\(page)"),
+            URLQueryItem(name: "limit", value: "\(limit)")
+        ]
+        
+        if let role = filters.role {
+            queryItems.append(URLQueryItem(name: "role", value: role.rawValue))
+        }
+        if let sport = filters.sport {
+            queryItems.append(URLQueryItem(name: "sport", value: sport.rawValue))
+        }
+        if let city = filters.city {
+            queryItems.append(URLQueryItem(name: "city", value: city))
+        }
+        if let level = filters.level {
+            queryItems.append(URLQueryItem(name: "level", value: level.rawValue))
+        }
+        if let position = filters.position {
+            queryItems.append(URLQueryItem(name: "position", value: position))
+        }
+        
+        components.queryItems = queryItems
+        
+        // Log request
+        LoggingService.shared.logAPIRequest(
+            endpoint: "\(endpoint)?\(components.query ?? "")",
+            method: "GET",
+            headers: nil,
+            body: nil
+        )
+        
+        let startTime = Date()
+        let (data, response) = try await session.data(from: components.url!)
+        let duration = Date().timeIntervalSince(startTime)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            LoggingService.shared.logAPIError(
+                endpoint: endpoint,
+                method: "GET",
+                statusCode: nil,
+                error: APIError.networkError,
+                responseData: data,
+                additionalInfo: [
+                    "filters": [
+                        "role": filters.role?.rawValue ?? "nil",
+                        "city": filters.city ?? "nil",
+                        "sport": filters.sport?.rawValue ?? "nil",
+                        "level": filters.level?.rawValue ?? "nil",
+                        "position": filters.position ?? "nil"
+                    ],
+                    "pagination": ["page": page, "limit": limit]
+                ]
+            )
+            throw APIError.networkError
+        }
+        
+        // Log response
+        LoggingService.shared.logAPIResponse(
+            endpoint: endpoint,
+            method: "GET",
+            statusCode: httpResponse.statusCode,
+            responseData: data,
+            duration: duration
+        )
+        
+        guard httpResponse.statusCode == 200 else {
+            let error = APIError.invalidResponse
+            LoggingService.shared.logAPIError(
+                endpoint: endpoint,
+                method: "GET",
+                statusCode: httpResponse.statusCode,
+                error: error,
+                responseData: data,
+                additionalInfo: [
+                    "filters": [
+                        "role": filters.role?.rawValue ?? "nil",
+                        "city": filters.city ?? "nil",
+                        "sport": filters.sport?.rawValue ?? "nil",
+                        "level": filters.level?.rawValue ?? "nil",
+                        "position": filters.position ?? "nil"
+                    ],
+                    "pagination": ["page": page, "limit": limit]
+                ]
+            )
+            throw error
+        }
+        
+        do {
+            return try makeDecoder().decode(UsersResponse.self, from: data)
+        } catch {
+            print("🔴 Decoding error: \(error)")
+            print("🔴 Response data: \(String(data: data, encoding: .utf8) ?? "Unable to decode")")
+            throw error
+        }
     }
     
     // MARK: - Offers Endpoints
@@ -183,21 +382,6 @@ class APIService: ObservableObject {
     }
     
     // MARK: - Applications Endpoints
-    
-    func getMyApplications(token: String) async throws -> ApplicationsResponse {
-        let url = URL(string: "\(baseURL)/api/applications/my")!
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
-        }
-        
-        return try makeDecoder().decode(ApplicationsResponse.self, from: data)
-    }
     
     func applyToOffer(offerId: UUID, message: String?, token: String) async throws -> ApplicationResponse {
         let url = URL(string: "\(baseURL)/api/applications")!
@@ -314,6 +498,75 @@ class APIService: ObservableObject {
         }
         return try makeDecoder().decode(MessageResponse.self, from: data)
     }
+
+    func createConversation(participantId: UUID, token: String) async throws -> ConversationResponse {
+        let url = URL(string: "\(baseURL)/api/messages/conversations")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let body = CreateConversationRequest(participantId: participantId)
+        request.httpBody = try JSONEncoder().encode(body)
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(ConversationResponse.self, from: data)
+    }
+    
+    // MARK: - Applications
+    
+    func getMyApplications(token: String) async throws -> ApplicationsResponse {
+        let url = URL(string: "\(baseURL)/api/applications/my")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(ApplicationsResponse.self, from: data)
+    }
+    
+    func getOfferApplications(offerId: UUID, token: String) async throws -> ApplicationsResponse {
+        let url = URL(string: "\(baseURL)/api/applications/offer/\(offerId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(ApplicationsResponse.self, from: data)
+    }
+    
+    // MARK: - My Offers
+    
+    func getMyOffers(token: String) async throws -> OffersResponse {
+        let url = URL(string: "\(baseURL)/api/offers/my")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(OffersResponse.self, from: data)
+    }
+    
+    // MARK: - User Profile
+    
+    func getUser(id: UUID, token: String) async throws -> UserResponse {
+        let url = URL(string: "\(baseURL)/api/users/\(id)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(UserResponse.self, from: data)
+    }
 }
 
 // MARK: - Request/Response Models
@@ -354,9 +607,6 @@ struct OfferResponse: Codable {
     let offer: Offer
 }
 
-struct ApplicationsResponse: Codable {
-    let applications: [Application]
-}
 
 struct ApplicationResponse: Codable {
     let message: String
@@ -368,10 +618,6 @@ struct UsersResponse: Codable {
     let pagination: Pagination
 }
 
-struct UserResponse: Codable {
-    let message: String
-    let user: User
-}
 
 struct ConversationsResponse: Codable {
     let conversations: [Conversation]
@@ -388,6 +634,15 @@ struct MessageResponse: Codable {
 
 struct SendMessageRequest: Codable {
     let content: String
+}
+
+struct CreateConversationRequest: Codable {
+    let participantId: UUID
+}
+
+struct ConversationResponse: Codable {
+    let message: String
+    let conversation: Conversation
 }
 
 struct ApplyRequest: Codable {
@@ -447,6 +702,16 @@ struct UserFilters {
     let level: SkillLevel?
     let position: String?
 }
+
+struct ApplicationsResponse: Codable {
+    let applications: [Application]
+    let pagination: Pagination
+}
+
+struct UserResponse: Codable {
+    let user: User
+}
+
 
 // MARK: - Errors
 

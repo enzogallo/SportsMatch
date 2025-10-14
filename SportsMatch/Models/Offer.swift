@@ -102,6 +102,22 @@ struct Application: Identifiable, Codable {
     var createdAt: Date
     var updatedAt: Date
     
+    // Computed properties for display
+    var offerTitle: String {
+        // This would be populated from the offer data
+        return "Offre #\(offerId.uuidString.prefix(8))"
+    }
+    
+    var clubName: String {
+        // This would be populated from the club data
+        return "Club #\(offerId.uuidString.prefix(8))"
+    }
+    
+    var playerName: String {
+        // This would be populated from the player data
+        return "Joueur #\(playerId.uuidString.prefix(8))"
+    }
+    
     init(id: UUID = UUID(), offerId: UUID, playerId: UUID, message: String? = nil) {
         self.id = id
         self.offerId = offerId

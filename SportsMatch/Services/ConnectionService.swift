@@ -47,6 +47,18 @@ class ConnectionService: ObservableObject {
         } catch {
             isConnected = false
             connectionError = error.localizedDescription
+            
+            // Log connection error
+            LoggingService.shared.logAPIError(
+                endpoint: "/api/health",
+                method: "GET",
+                statusCode: nil,
+                error: error,
+                additionalInfo: [
+                    "connection_check": true,
+                    "timestamp": Date().iso8601String
+                ]
+            )
         }
         
         isConnecting = false
@@ -145,4 +157,12 @@ struct HealthResponse: Codable {
     let timestamp: String
     let version: String
     let uptime: Double?
+}
+
+// MARK: - Date Extension
+extension Date {
+    var iso8601String: String {
+        let formatter = ISO8601DateFormatter()
+        return formatter.string(from: self)
+    }
 }

@@ -54,6 +54,12 @@ struct Conversation: Identifiable, Codable {
     let lastActivityAt: Date
     var unreadCount: Int
     
+    // Computed property for display
+    var participantName: String? {
+        // This would be populated from the participant data
+        return participantIds.first.map { "Participant #\($0.uuidString.prefix(8))" }
+    }
+    
     init(id: UUID = UUID(), participantIds: [UUID]) {
         self.id = id
         self.participantIds = participantIds

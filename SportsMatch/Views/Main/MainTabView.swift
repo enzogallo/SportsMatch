@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @StateObject private var authService = AuthService()
+    @EnvironmentObject var authService: AuthService
     @StateObject private var connectionService = ConnectionService()
     @State private var selectedTab = 0
     @State private var showingCreateOffer = false
@@ -59,6 +59,18 @@ struct MainTabView: View {
                 }
                 .padding(.top, 50)
                 .padding(.trailing, 16)
+            }
+            .toolbar {
+                // Bouton d'action contextuel selon le rôle
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if authService.currentUser?.role == .club {
+                        Button {
+                            showingCreateOffer = true
+                        } label: {
+                            Label("Créer une offre", systemImage: "plus.circle.fill")
+                        }
+                    }
+                }
             }
         .onAppear {
             // Configuration de l'apparence des onglets

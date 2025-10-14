@@ -11,6 +11,9 @@ struct FeedView: View {
     @StateObject private var offerService = OfferService()
     @State private var showingFilters = false
     @State private var searchText = ""
+    @State private var selectedOffer: Offer?
+    @State private var showingOfferDetail = false
+    @State private var showingApplication = false
     
     var body: some View {
         NavigationView {
@@ -93,10 +96,12 @@ struct FeedView: View {
                                     offer: offer,
                                     clubName: nil,
                                     onApply: {
-                                        // Navigation vers candidature
+                                        selectedOffer = offer
+                                        showingApplication = true
                                     },
                                     onViewDetails: {
-                                        // Navigation vers détails
+                                        selectedOffer = offer
+                                        showingOfferDetail = true
                                     }
                                 )
                             }
@@ -112,6 +117,17 @@ struct FeedView: View {
         }
         .sheet(isPresented: $showingFilters) {
             FiltersView()
+        }
+        .sheet(isPresented: $showingOfferDetail) {
+            if let offer = selectedOffer {
+                OfferDetailView(offer: offer)
+            }
+        }
+        .sheet(isPresented: $showingApplication) {
+            if let offer = selectedOffer {
+                ApplicationView(offer: offer)
+                    .environmentObject(AuthService())
+            }
         }
         .onAppear {
             Task {

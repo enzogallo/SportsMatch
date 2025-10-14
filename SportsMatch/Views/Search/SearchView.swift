@@ -11,6 +11,14 @@ struct SearchView: View {
     @State private var searchText = ""
     @State private var selectedTab = 0
     @State private var showingFilters = false
+    @State private var selectedPlayer: User?
+    @State private var selectedClub: User?
+    @State private var selectedOffer: Offer?
+    @State private var showingPlayerProfile = false
+    @State private var showingClubProfile = false
+    @State private var showingOfferDetail = false
+    @State private var showingApplication = false
+    @State private var showingNewConversation = false
     
     var body: some View {
         NavigationView {
@@ -74,11 +82,41 @@ struct SearchView: View {
                 Group {
                     switch selectedTab {
                     case 0:
-                        PlayersSearchView(searchText: searchText)
+                        PlayersSearchView(
+                            searchText: searchText,
+                            onViewProfile: { player in
+                                selectedPlayer = player
+                                showingPlayerProfile = true
+                            },
+                            onContact: { player in
+                                selectedPlayer = player
+                                showingNewConversation = true
+                            }
+                        )
                     case 1:
-                        ClubsSearchView(searchText: searchText)
+                        ClubsSearchView(
+                            searchText: searchText,
+                            onViewProfile: { club in
+                                selectedClub = club
+                                showingClubProfile = true
+                            },
+                            onContact: { club in
+                                selectedClub = club
+                                showingNewConversation = true
+                            }
+                        )
                     case 2:
-                        OffersSearchView(searchText: searchText)
+                        OffersSearchView(
+                            searchText: searchText,
+                            onApply: { offer in
+                                selectedOffer = offer
+                                showingApplication = true
+                            },
+                            onViewDetails: { offer in
+                                selectedOffer = offer
+                                showingOfferDetail = true
+                            }
+                        )
                     default:
                         EmptyView()
                     }
@@ -87,6 +125,36 @@ struct SearchView: View {
             .navigationTitle("Recherche")
             .navigationBarTitleDisplayMode(.large)
             .background(Color.background)
+        }
+        .sheet(isPresented: $showingPlayerProfile) {
+            if let player = selectedPlayer {
+                PlayerProfileView(playerId: player.id)
+            }
+        }
+        .sheet(isPresented: $showingClubProfile) {
+            if let club = selectedClub {
+                PlayerProfileView(playerId: club.id) // Reuse PlayerProfileView for clubs
+            }
+        }
+        .sheet(isPresented: $showingOfferDetail) {
+            if let offer = selectedOffer {
+                OfferDetailView(offer: offer)
+            }
+        }
+        .sheet(isPresented: $showingApplication) {
+            if let offer = selectedOffer {
+                ApplicationView(offer: offer)
+                    .environmentObject(AuthService())
+            }
+        }
+        .sheet(isPresented: $showingNewConversation) {
+            NewConversationView(
+                participant: selectedPlayer ?? selectedClub,
+                onDismiss: {
+                    selectedPlayer = nil
+                    selectedClub = nil
+                }
+            )
         }
     }
 }
@@ -114,28 +182,49 @@ struct SearchTabButton: View {
 
 struct PlayersSearchView: View {
     let searchText: String
+    let onViewProfile: (User) -> Void
+    let onContact: (User) -> Void
     @State private var players: [User] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     private let api = APIService.shared
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(players) { player in
-                    PlayerCard(
-                        player: player,
-                        onViewProfile: {
-                            // Navigation vers profil
-                        },
-                        onContact: {
-                            // Créer conversation
+        Group {
+            if players.isEmpty && !isLoading {
+                EmptySearchView(
+                    icon: "person.2",
+                    title: searchText.isEmpty ? "Aucun joueur trouvé" : "Aucun résultat",
+                    description: searchText.isEmpty ? "Les joueurs apparaîtront ici." : "Essayez avec d'autres mots-clés."
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        ForEach(players) { player in
+                            PlayerCard(
+                                player: player,
+                                onViewProfile: {
+                                    onViewProfile(player)
+                                },
+                                onContact: {
+                                    onContact(player)
+                                }
+                            )
                         }
-                    )
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+        }
+        .onAppear {
+            print("🔵 PlayersSearchView: onAppear - players.count: \(players.count), isLoading: \(isLoading)")
+        }
+        .onChange(of: players) { newPlayers in
+            print("🔵 PlayersSearchView: players changed - count: \(newPlayers.count)")
+        }
+        .onChange(of: isLoading) { newIsLoading in
+            print("🔵 PlayersSearchView: isLoading changed - \(newIsLoading)")
         }
         .overlay(
             Group {
@@ -143,7 +232,14 @@ struct PlayersSearchView: View {
                 if let errorMessage { Text(errorMessage).foregroundColor(.error) }
             }
         )
+        .onAppear {
+            Task {
+                await loadPlayers()
+            }
+        }
         .task(id: searchText) {
+            // Délai de 500ms pour éviter trop d'appels API
+            try? await Task.sleep(nanoseconds: 500_000_000)
             await loadPlayers()
         }
     }
@@ -153,43 +249,68 @@ struct PlayersSearchView: View {
         errorMessage = nil
         do {
             let response = try await api.searchUsers(
-                filters: UserFilters(role: .player, sport: nil, city: searchText.isEmpty ? nil : searchText, level: nil, position: nil),
+                filters: UserFilters(
+                    role: .player, 
+                    sport: nil, 
+                    city: searchText.isEmpty ? nil : searchText, 
+                    level: nil, 
+                    position: nil
+                ),
                 page: 1,
                 limit: 20
             )
-            players = response.users.filter { $0.role == .player }
+            players = response.users
             isLoading = false
+            
+            // Debug logging
+            print("🔵 PlayersSearchView: Loaded \(players.count) players")
+            for player in players {
+                print("🔵 Player: \(player.name) (ID: \(player.id))")
+            }
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+            print("🔴 PlayersSearchView: Error loading players: \(error.localizedDescription)")
         }
     }
 }
 
 struct ClubsSearchView: View {
     let searchText: String
+    let onViewProfile: (User) -> Void
+    let onContact: (User) -> Void
     @State private var clubs: [User] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     private let api = APIService.shared
     
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(clubs) { club in
-                    ClubCard(
-                        club: club,
-                        onViewProfile: {
-                            // Navigation vers profil
-                        },
-                        onContact: {
-                            // Créer conversation
+        Group {
+            if clubs.isEmpty && !isLoading {
+                EmptySearchView(
+                    icon: "building.2",
+                    title: searchText.isEmpty ? "Aucun club trouvé" : "Aucun résultat",
+                    description: searchText.isEmpty ? "Les clubs apparaîtront ici." : "Essayez avec d'autres mots-clés."
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        ForEach(clubs) { club in
+                            ClubCard(
+                                club: club,
+                                onViewProfile: {
+                                    onViewProfile(club)
+                                },
+                                onContact: {
+                                    onContact(club)
+                                }
+                            )
                         }
-                    )
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
         }
         .overlay(
             Group {
@@ -198,6 +319,8 @@ struct ClubsSearchView: View {
             }
         )
         .task(id: searchText) {
+            // Délai de 500ms pour éviter trop d'appels API
+            try? await Task.sleep(nanoseconds: 500_000_000)
             await loadClubs()
         }
     }
@@ -207,11 +330,17 @@ struct ClubsSearchView: View {
         errorMessage = nil
         do {
             let response = try await api.searchUsers(
-                filters: UserFilters(role: .club, sport: nil, city: searchText.isEmpty ? nil : searchText, level: nil, position: nil),
+                filters: UserFilters(
+                    role: .club, 
+                    sport: nil, 
+                    city: searchText.isEmpty ? nil : searchText, 
+                    level: nil, 
+                    position: nil
+                ),
                 page: 1,
                 limit: 20
             )
-            clubs = response.users.filter { $0.role == .club }
+            clubs = response.users
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -222,20 +351,23 @@ struct ClubsSearchView: View {
 
 struct OffersSearchView: View {
     let searchText: String
+    let onApply: (Offer) -> Void
+    let onViewDetails: (Offer) -> Void
     @StateObject private var offerService = OfferService()
+    @State private var filteredOffers: [Offer] = []
     
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(offerService.offers) { offer in
+                ForEach(filteredOffers) { offer in
                     OfferCard(
                         offer: offer,
                         clubName: nil,
                         onApply: {
-                            // Navigation vers candidature
+                            onApply(offer)
                         },
                         onViewDetails: {
-                            // Navigation vers détails
+                            onViewDetails(offer)
                         }
                     )
                 }
@@ -245,7 +377,30 @@ struct OffersSearchView: View {
         }
         .onAppear {
             Task {
-                await offerService.loadOffers()
+                await loadOffers()
+            }
+        }
+        .onChange(of: searchText) { _ in
+            Task {
+                await filterOffers()
+            }
+        }
+    }
+    
+    private func loadOffers() async {
+        await offerService.loadOffers()
+        await filterOffers()
+    }
+    
+    private func filterOffers() async {
+        if searchText.isEmpty {
+            filteredOffers = offerService.offers
+        } else {
+            filteredOffers = offerService.offers.filter { offer in
+                offer.title.localizedCaseInsensitiveContains(searchText) ||
+                offer.description.localizedCaseInsensitiveContains(searchText) ||
+                offer.city.localizedCaseInsensitiveContains(searchText) ||
+                offer.sport.displayName.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
@@ -319,6 +474,32 @@ struct ClubCard: View {
         .background(Color.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+}
+
+struct EmptySearchView: View {
+    let icon: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 60))
+                .foregroundColor(.textTertiary)
+            
+            Text(title)
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(.textPrimary)
+            
+            Text(description)
+                .font(.callout)
+                .foregroundColor(.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
