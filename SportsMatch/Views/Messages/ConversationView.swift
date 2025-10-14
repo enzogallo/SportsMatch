@@ -115,10 +115,7 @@ struct ConversationView: View {
     NavigationView {
         ConversationView(conversation: Conversation(
             id: UUID(),
-            participantIds: [UUID(), UUID()],
-            lastMessage: nil,
-            lastActivityAt: Date(),
-            unreadCount: 0
+            participantIds: [UUID(), UUID()]
         ))
     }
 }
