@@ -93,10 +93,10 @@ struct FeedView: View {
                                     offer: offer,
                                     clubName: nil,
                                     onApply: {
-                                        // Action de candidature
+                                        // Navigation vers candidature
                                     },
                                     onViewDetails: {
-                                        // Action de voir les détails
+                                        // Navigation vers détails
                                     }
                                 )
                             }

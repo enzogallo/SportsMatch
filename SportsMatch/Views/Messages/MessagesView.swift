@@ -47,14 +47,15 @@ struct MessagesView: View {
                 if conversations.isEmpty {
                     EmptyMessagesView()
                 } else {
-                    ScrollView {
+                    NavigationView {
+                        ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(conversations) { conversation in
-                                ConversationRow(conversation: conversation)
-                                    .onTapGesture {
-                                        // Navigation vers la conversation
+                                    NavigationLink(destination: ConversationView(conversationId: conversation.id)) {
+                                        ConversationRow(conversation: conversation)
                                     }
                             }
+                        }
                         }
                     }
                 }
@@ -62,6 +63,15 @@ struct MessagesView: View {
             .navigationTitle("Messages")
             .navigationBarTitleDisplayMode(.large)
             .background(Color.background)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        // Créer une nouvelle conversation
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
         }
         .overlay(
             Group {
@@ -105,7 +115,7 @@ struct ConversationRow: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("Nom du contact")
+                    Text(conversation.participantName ?? "Contact")
                         .font(.callout)
                         .fontWeight(.semibold)
                         .foregroundColor(.textPrimary)

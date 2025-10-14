@@ -25,7 +25,7 @@ struct OfferDetailView: View {
                 if let errorMessage { Text(errorMessage).foregroundColor(.error) }
                 // Header avec image et actions
                 VStack(alignment: .leading, spacing: 16) {
-                    // Image de l'offre (placeholder)
+                    // Image de l'offre
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color.surfaceSecondary)
                         .frame(height: 200)
@@ -93,13 +93,15 @@ struct OfferDetailView: View {
                 
                 // Actions
                 VStack(spacing: 12) {
-                    Button("Postuler à cette offre") {
-                        showingApplication = true
+                    if authService.currentUser?.role == .player {
+                        Button("Postuler à cette offre") {
+                            showingApplication = true
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
                     }
-                    .buttonStyle(PrimaryButtonStyle())
                     
                     Button("Contacter le club") {
-                        // Action de contact
+                        Task { await contactClub() }
                     }
                     .buttonStyle(SecondaryButtonStyle())
                 }
@@ -118,6 +120,7 @@ struct OfferDetailView: View {
         }
         .sheet(isPresented: $showingApplication) {
             ApplicationView(offer: fullOffer ?? offer)
+                .environmentObject(AuthService())
         }
         .overlay(
             Group { if isLoading { ProgressView().scaleEffect(1.2) } }
@@ -139,6 +142,21 @@ private extension OfferDetailView {
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+        }
+    }
+}
+
+private extension OfferDetailView {
+    var authService: AuthService { AuthService() }
+    
+    func contactClub() async {
+        guard let token = UserDefaults.standard.string(forKey: "auth_token") else { return }
+        do {
+            // participantId = clubId de l'offre
+            let conv = try await api.createConversation(participantId: offer.clubId, token: token)
+            // Navigation vers la conversation
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

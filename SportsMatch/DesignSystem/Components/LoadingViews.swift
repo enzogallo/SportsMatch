@@ -203,7 +203,7 @@ struct PullToRefreshView: View {
                         .scaleEffect(0.8)
                         .tint(.primaryBlue)
                     
-                    Text("Actualisation...")
+                    Text("Actualisation en cours...")
                         .font(.caption)
                         .foregroundColor(.textSecondary)
                 }

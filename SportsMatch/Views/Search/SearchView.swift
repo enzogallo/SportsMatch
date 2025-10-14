@@ -126,10 +126,10 @@ struct PlayersSearchView: View {
                     PlayerCard(
                         player: player,
                         onViewProfile: {
-                            // Action pour voir le profil
+                            // Navigation vers profil
                         },
                         onContact: {
-                            // Action pour contacter
+                            // Créer conversation
                         }
                     )
                 }
@@ -180,10 +180,10 @@ struct ClubsSearchView: View {
                     ClubCard(
                         club: club,
                         onViewProfile: {
-                            // Action pour voir le profil
+                            // Navigation vers profil
                         },
                         onContact: {
-                            // Action pour contacter
+                            // Créer conversation
                         }
                     )
                 }
@@ -232,10 +232,10 @@ struct OffersSearchView: View {
                         offer: offer,
                         clubName: nil,
                         onApply: {
-                            // Action de candidature
+                            // Navigation vers candidature
                         },
                         onViewDetails: {
-                            // Action de voir les détails
+                            // Navigation vers détails
                         }
                     )
                 }
