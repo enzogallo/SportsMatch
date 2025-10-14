@@ -116,6 +116,8 @@ struct PlayersSearchView: View {
     let searchText: String
     @State private var players: [User] = []
     @State private var isLoading = false
+    @State private var errorMessage: String?
+    private let api = APIService.shared
     
     var body: some View {
         ScrollView {
@@ -135,24 +137,41 @@ struct PlayersSearchView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
-        .onAppear {
-            loadSamplePlayers()
+        .overlay(
+            Group {
+                if isLoading { ProgressView().scaleEffect(1.2) }
+                if let errorMessage { Text(errorMessage).foregroundColor(.error) }
+            }
+        )
+        .task(id: searchText) {
+            await loadPlayers()
         }
     }
     
-    private func loadSamplePlayers() {
-        // Données d'exemple
-        players = [
-            User(email: "player1@example.com", name: "Alex Martin", role: .player),
-            User(email: "player2@example.com", name: "Sarah Dubois", role: .player),
-            User(email: "player3@example.com", name: "Thomas Leroy", role: .player)
-        ]
+    private func loadPlayers() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let response = try await api.searchUsers(
+                filters: UserFilters(role: .player, sport: nil, city: searchText.isEmpty ? nil : searchText, level: nil, position: nil),
+                page: 1,
+                limit: 20
+            )
+            players = response.users.filter { $0.role == .player }
+            isLoading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
     }
 }
 
 struct ClubsSearchView: View {
     let searchText: String
     @State private var clubs: [User] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    private let api = APIService.shared
     
     var body: some View {
         ScrollView {
@@ -172,18 +191,32 @@ struct ClubsSearchView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
-        .onAppear {
-            loadSampleClubs()
+        .overlay(
+            Group {
+                if isLoading { ProgressView().scaleEffect(1.2) }
+                if let errorMessage { Text(errorMessage).foregroundColor(.error) }
+            }
+        )
+        .task(id: searchText) {
+            await loadClubs()
         }
     }
     
-    private func loadSampleClubs() {
-        // Données d'exemple
-        clubs = [
-            User(email: "club1@example.com", name: "FC Paris", role: .club),
-            User(email: "club2@example.com", name: "Basket Lyon", role: .club),
-            User(email: "club3@example.com", name: "Tennis Club Marseille", role: .club)
-        ]
+    private func loadClubs() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let response = try await api.searchUsers(
+                filters: UserFilters(role: .club, sport: nil, city: searchText.isEmpty ? nil : searchText, level: nil, position: nil),
+                page: 1,
+                limit: 20
+            )
+            clubs = response.users.filter { $0.role == .club }
+            isLoading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
     }
 }
 
@@ -197,7 +230,7 @@ struct OffersSearchView: View {
                 ForEach(offerService.offers) { offer in
                     OfferCard(
                         offer: offer,
-                        clubName: "Club Example",
+                        clubName: nil,
                         onApply: {
                             // Action de candidature
                         },

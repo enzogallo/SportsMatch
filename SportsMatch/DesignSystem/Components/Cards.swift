@@ -9,7 +9,7 @@ import SwiftUI
 
 struct OfferCard: View {
     let offer: Offer
-    let clubName: String
+    let clubName: String?
     let onApply: () -> Void
     let onViewDetails: () -> Void
     
@@ -72,9 +72,11 @@ struct OfferCard: View {
             // Footer avec actions
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Publié par \(clubName)")
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
+                    if let clubName = clubName, !clubName.isEmpty {
+                        Text("Publié par \(clubName)")
+                            .font(.caption)
+                            .foregroundColor(.textTertiary)
+                    }
                     
                     Text(offer.createdAt, style: .relative)
                         .font(.caption2)

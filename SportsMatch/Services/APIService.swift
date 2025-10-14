@@ -276,6 +276,44 @@ class APIService: ObservableObject {
         
         return try makeDecoder().decode(UserResponse.self, from: data)
     }
+
+    // MARK: - Messages Endpoints
+    func getConversations(token: String) async throws -> ConversationsResponse {
+        let url = URL(string: "\(baseURL)/api/messages/conversations")!
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(ConversationsResponse.self, from: data)
+    }
+    
+    func getMessages(conversationId: UUID, token: String) async throws -> MessagesResponse {
+        let url = URL(string: "\(baseURL)/api/messages/conversations/\(conversationId)/messages")!
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(MessagesResponse.self, from: data)
+    }
+    
+    func sendMessage(conversationId: UUID, content: String, token: String) async throws -> MessageResponse {
+        let url = URL(string: "\(baseURL)/api/messages/conversations/\(conversationId)/messages")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let body = SendMessageRequest(content: content)
+        request.httpBody = try JSONEncoder().encode(body)
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 else {
+            throw APIError.invalidResponse
+        }
+        return try makeDecoder().decode(MessageResponse.self, from: data)
+    }
 }
 
 // MARK: - Request/Response Models
@@ -333,6 +371,23 @@ struct UsersResponse: Codable {
 struct UserResponse: Codable {
     let message: String
     let user: User
+}
+
+struct ConversationsResponse: Codable {
+    let conversations: [Conversation]
+}
+
+struct MessagesResponse: Codable {
+    let messages: [Message]
+}
+
+struct MessageResponse: Codable {
+    let message: String
+    let data: Message
+}
+
+struct SendMessageRequest: Codable {
+    let content: String
 }
 
 struct ApplyRequest: Codable {

@@ -13,9 +13,16 @@ struct OfferDetailView: View {
     @State private var showingApplication = false
     @State private var isFavorite = false
     
+    // Chargement des détails à partir de l'API pour éviter toute donnée obsolète/partielle
+    @State private var fullOffer: Offer?
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    private let api = APIService.shared
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                if let errorMessage { Text(errorMessage).foregroundColor(.error) }
                 // Header avec image et actions
                 VStack(alignment: .leading, spacing: 16) {
                     // Image de l'offre (placeholder)
@@ -35,16 +42,17 @@ struct OfferDetailView: View {
                     
                     // Titre et statut
                     HStack {
+                        let current = fullOffer ?? offer
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(offer.title)
+                            Text(current.title)
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.textPrimary)
                             
                             HStack(spacing: 12) {
-                                OfferStatusBadge(status: offer.status)
+                                OfferStatusBadge(status: current.status)
                                 
-                                if offer.isUrgent {
+                                if current.isUrgent {
                                     Text("URGENT")
                                         .font(.caption2)
                                         .fontWeight(.bold)
@@ -69,18 +77,19 @@ struct OfferDetailView: View {
                     }
                 }
                 
-                // Informations du club
+                // Informations du club (sans valeurs en dur)
+                let current = fullOffer ?? offer
                 ClubInfoCard(
-                    clubName: "Club Example",
-                    location: "\(offer.city), \(offer.location)",
-                    contactEmail: "contact@club.com"
+                    clubName: nil,
+                    location: "\(current.city), \(current.location)",
+                    contactEmail: nil
                 )
                 
                 // Détails de l'offre
-                OfferDetailsCard(offer: offer)
+                OfferDetailsCard(offer: fullOffer ?? offer)
                 
                 // Description
-                DescriptionCard(description: offer.description)
+                DescriptionCard(description: (fullOffer ?? offer).description)
                 
                 // Actions
                 VStack(spacing: 12) {
@@ -108,15 +117,36 @@ struct OfferDetailView: View {
             }
         }
         .sheet(isPresented: $showingApplication) {
-            ApplicationView(offer: offer)
+            ApplicationView(offer: fullOffer ?? offer)
+        }
+        .overlay(
+            Group { if isLoading { ProgressView().scaleEffect(1.2) } }
+        )
+        .task {
+            await loadOffer()
+        }
+    }
+}
+
+private extension OfferDetailView {
+    func loadOffer() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let detail = try await api.getOffer(id: offer.id)
+            fullOffer = detail.offer
+            isLoading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
         }
     }
 }
 
 struct ClubInfoCard: View {
-    let clubName: String
-    let location: String
-    let contactEmail: String
+    let clubName: String?
+    let location: String?
+    let contactEmail: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -134,18 +164,24 @@ struct ClubInfoCard: View {
                     )
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(clubName)
-                        .font(.callout)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.textPrimary)
+                    if let clubName, !clubName.isEmpty {
+                        Text(clubName)
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.textPrimary)
+                    }
                     
-                    Text(location)
-                        .font(.caption)
-                        .foregroundColor(.textSecondary)
+                    if let location, !location.isEmpty {
+                        Text(location)
+                            .font(.caption)
+                            .foregroundColor(.textSecondary)
+                    }
                     
-                    Text(contactEmail)
-                        .font(.caption)
-                        .foregroundColor(.textTertiary)
+                    if let contactEmail, !contactEmail.isEmpty {
+                        Text(contactEmail)
+                            .font(.caption)
+                            .foregroundColor(.textTertiary)
+                    }
                 }
                 
                 Spacer()

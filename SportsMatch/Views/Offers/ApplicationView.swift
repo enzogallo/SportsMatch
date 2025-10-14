@@ -10,9 +10,12 @@ import SwiftUI
 struct ApplicationView: View {
     let offer: Offer
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authService: AuthService
     @State private var message = ""
     @State private var isSubmitting = false
     @State private var showingSuccess = false
+    @State private var errorMessage: String?
+    private let api = APIService.shared
     
     var body: some View {
         NavigationView {
@@ -86,8 +89,9 @@ struct ApplicationView: View {
                     
                     // Boutons d'action
                     VStack(spacing: 12) {
+                        if let errorMessage { Text(errorMessage).foregroundColor(.error) }
                         Button("Envoyer ma candidature") {
-                            submitApplication()
+                            Task { await submitApplication() }
                         }
                         .buttonStyle(PrimaryButtonStyle(isDisabled: message.isEmpty))
                         .disabled(isSubmitting)
@@ -120,13 +124,19 @@ struct ApplicationView: View {
         }
     }
     
-    private func submitApplication() {
+    private func submitApplication() async {
         isSubmitting = true
-        
-        // Simulation d'envoi de candidature
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        errorMessage = nil
+        do {
+            guard let token = UserDefaults.standard.string(forKey: "auth_token") else {
+                throw APIError.invalidCredentials
+            }
+            _ = try await api.applyToOffer(offerId: offer.id, message: message.isEmpty ? nil : message, token: token)
             isSubmitting = false
             showingSuccess = true
+        } catch {
+            errorMessage = error.localizedDescription
+            isSubmitting = false
         }
     }
 }

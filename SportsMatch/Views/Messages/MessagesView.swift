@@ -10,6 +10,9 @@ import SwiftUI
 struct MessagesView: View {
     @State private var conversations: [Conversation] = []
     @State private var searchText = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    private let api = APIService.shared
     
     var body: some View {
         NavigationView {
@@ -60,18 +63,29 @@ struct MessagesView: View {
             .navigationBarTitleDisplayMode(.large)
             .background(Color.background)
         }
-        .onAppear {
-            loadSampleConversations()
+        .overlay(
+            Group {
+                if isLoading { ProgressView().scaleEffect(1.2) }
+                if let errorMessage { Text(errorMessage).foregroundColor(.error) }
+            }
+        )
+        .task {
+            await loadConversations()
         }
     }
     
-    private func loadSampleConversations() {
-        // Données d'exemple
-        conversations = [
-            Conversation(participantIds: [UUID(), UUID()]),
-            Conversation(participantIds: [UUID(), UUID()]),
-            Conversation(participantIds: [UUID(), UUID()])
-        ]
+    private func loadConversations() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            guard let token = UserDefaults.standard.string(forKey: "auth_token") else { throw APIError.invalidCredentials }
+            let response = try await api.getConversations(token: token)
+            conversations = response.conversations
+            isLoading = false
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+        }
     }
 }
 

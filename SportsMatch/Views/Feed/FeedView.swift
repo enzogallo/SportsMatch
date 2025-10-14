@@ -91,7 +91,7 @@ struct FeedView: View {
                             ForEach(offerService.offers) { offer in
                                 OfferCard(
                                     offer: offer,
-                                    clubName: "Club Example", // Remplacer par le vrai nom du club
+                                    clubName: nil,
                                     onApply: {
                                         // Action de candidature
                                     },
