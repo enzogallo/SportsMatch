@@ -11,6 +11,7 @@ struct FavoritesView: View {
     @EnvironmentObject var authService: AuthService
     @State private var favoritePlayers: [User] = []
     @State private var favoriteClubs: [User] = []
+    @State private var favoriteOffers: [Offer] = []
     @State private var selectedTab = 0
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -22,17 +23,24 @@ struct FavoritesView: View {
                 // Onglets
                 HStack(spacing: 0) {
                     FavoriteTabButton(
-                        title: "Joueurs",
+                        title: "Offres",
                         isSelected: selectedTab == 0
                     ) {
                         selectedTab = 0
                     }
                     
                     FavoriteTabButton(
-                        title: "Clubs",
+                        title: "Joueurs",
                         isSelected: selectedTab == 1
                     ) {
                         selectedTab = 1
+                    }
+                    
+                    FavoriteTabButton(
+                        title: "Clubs",
+                        isSelected: selectedTab == 2
+                    ) {
+                        selectedTab = 2
                     }
                 }
                 .background(Color.surfaceSecondary)
@@ -45,12 +53,18 @@ struct FavoritesView: View {
                 Group {
                     switch selectedTab {
                     case 0:
+                        OffersFavoritesView(
+                            offers: favoriteOffers,
+                            isLoading: isLoading,
+                            errorMessage: errorMessage
+                        )
+                    case 1:
                         PlayersFavoritesView(
                             players: favoritePlayers,
                             isLoading: isLoading,
                             errorMessage: errorMessage
                         )
-                    case 1:
+                    case 2:
                         ClubsFavoritesView(
                             clubs: favoriteClubs,
                             isLoading: isLoading,
@@ -81,15 +95,59 @@ struct FavoritesView: View {
         do {
             guard let token = authService.getStoredToken() else { throw APIError.invalidCredentials }
             
-            // Charger les favoris (à implémenter dans l'API)
-            // Pour l'instant, on simule avec des listes vides
-            favoritePlayers = []
-            favoriteClubs = []
+            async let offersTask = api.getFavoriteOffers(token: token)
+            async let playersTask = api.getFavoriteUsers(type: "player", token: token)
+            async let clubsTask = api.getFavoriteUsers(type: "club", token: token)
+            
+            let (offersResult, playersResult, clubsResult) = try await (offersTask, playersTask, clubsTask)
+            
+            favoriteOffers = offersResult.offers
+            favoritePlayers = playersResult.users
+            favoriteClubs = clubsResult.users
             
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
+        }
+    }
+}
+
+struct OffersFavoritesView: View {
+    let offers: [Offer]
+    let isLoading: Bool
+    let errorMessage: String?
+    
+    var body: some View {
+        if isLoading {
+            Spacer()
+            ProgressView("Chargement des favoris...")
+                .foregroundColor(.textSecondary)
+            Spacer()
+        } else if offers.isEmpty {
+            EmptyFavoritesView(
+                icon: "heart",
+                title: "Aucune offre favorite",
+                description: "Les offres que vous ajoutez en favori apparaîtront ici."
+            )
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(offers) { offer in
+                        NavigationLink(destination: OfferDetailView(offer: offer)) {
+                            OfferCard(
+                                offer: offer,
+                                clubName: nil,
+                                onApply: {},
+                                onViewDetails: {}
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
         }
     }
 }

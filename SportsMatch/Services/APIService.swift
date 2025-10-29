@@ -567,6 +567,115 @@ class APIService: ObservableObject {
         }
         return try makeDecoder().decode(UserResponse.self, from: data)
     }
+    
+    // MARK: - Favorites Endpoints
+    
+    func checkFavorite(itemType: String, itemId: UUID, token: String) async throws -> Bool {
+        let url = URL(string: "\(baseURL)/api/favorites/check/\(itemType)/\(itemId.uuidString)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            // Logger pour debug
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("❌ Erreur checkFavorite - Status: \(httpResponse.statusCode), Response: \(errorString)")
+            }
+            throw APIError.invalidResponse
+        }
+        
+        let result = try makeDecoder().decode(FavoriteCheckResponse.self, from: data)
+        return result.isFavorite
+    }
+    
+    func addFavorite(itemType: String, itemId: UUID, token: String) async throws {
+        let url = URL(string: "\(baseURL)/api/favorites")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        // Encoder avec stratégie snake_case pour matcher le backend
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        
+        let body = AddFavoriteRequest(item_type: itemType, item_id: itemId)
+        request.httpBody = try encoder.encode(body)
+        
+        // Log pour debug
+        if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+            print("📤 Body envoyé: \(bodyString)")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("❌ Erreur addFavorite - Status: \(httpResponse.statusCode), Response: \(errorString)")
+            }
+            throw APIError.invalidResponse
+        }
+    }
+    
+    func removeFavorite(itemType: String, itemId: UUID, token: String) async throws {
+        let url = URL(string: "\(baseURL)/api/favorites/\(itemType)/\(itemId.uuidString)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("❌ Erreur removeFavorite - Status: \(httpResponse.statusCode), Response: \(errorString)")
+            }
+            throw APIError.invalidResponse
+        }
+    }
+    
+    func getFavoriteOffers(token: String) async throws -> OffersResponse {
+        let url = URL(string: "\(baseURL)/api/favorites/offer")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        let result = try makeDecoder().decode(FavoritesResponse.self, from: data)
+        return OffersResponse(offers: result.favorites)
+    }
+    
+    func getFavoriteUsers(type: String, token: String) async throws -> UsersResponse {
+        let url = URL(string: "\(baseURL)/api/favorites/\(type)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        let result = try makeDecoder().decode(FavoritesUsersResponse.self, from: data)
+        // Créer une pagination par défaut car l'API des favoris ne retourne pas de pagination
+        let defaultPagination = Pagination(page: 1, limit: result.favorites.count, total: result.favorites.count, pages: 1)
+        return UsersResponse(users: result.favorites, pagination: defaultPagination)
+    }
 }
 
 // MARK: - Request/Response Models
@@ -708,6 +817,23 @@ struct ApplicationsResponse: Codable {
 
 struct UserResponse: Codable {
     let user: User
+}
+
+struct FavoriteCheckResponse: Codable {
+    let isFavorite: Bool
+}
+
+struct AddFavoriteRequest: Codable {
+    let item_type: String
+    let item_id: UUID
+}
+
+struct FavoritesResponse: Codable {
+    let favorites: [Offer]
+}
+
+struct FavoritesUsersResponse: Codable {
+    let favorites: [User]
 }
 
 

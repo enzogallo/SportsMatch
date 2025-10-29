@@ -9,6 +9,7 @@ const userRoutes = require('./routes/users');
 const offerRoutes = require('./routes/offers');
 const applicationRoutes = require('./routes/applications');
 const messageRoutes = require('./routes/messages');
+const favoriteRoutes = require('./routes/favorites');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/favorites', favoriteRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

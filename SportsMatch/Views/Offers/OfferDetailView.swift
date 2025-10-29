@@ -12,12 +12,14 @@ struct OfferDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingApplication = false
     @State private var isFavorite = false
+    @State private var isLoadingFavorite = false
     
     // Chargement des détails à partir de l'API pour éviter toute donnée obsolète/partielle
     @State private var fullOffer: Offer?
     @State private var isLoading = false
     @State private var errorMessage: String?
     private let api = APIService.shared
+    @EnvironmentObject var authService: AuthService
     
     var body: some View {
         ScrollView {
@@ -70,12 +72,16 @@ struct OfferDetailView: View {
                         Spacer()
                         
                         Button(action: {
-                            isFavorite.toggle()
+                            Task {
+                                await toggleFavorite()
+                            }
                         }) {
                             Image(systemName: isFavorite ? "heart.fill" : "heart")
                                 .font(.title2)
                                 .foregroundColor(isFavorite ? .error : .textTertiary)
+                                .opacity(isLoadingFavorite ? 0.5 : 1.0)
                         }
+                        .disabled(isLoadingFavorite)
                     }
                 }
                 
@@ -122,13 +128,14 @@ struct OfferDetailView: View {
         }
         .sheet(isPresented: $showingApplication) {
             ApplicationView(offer: fullOffer ?? offer)
-                .environmentObject(AuthService())
+                .environmentObject(authService)
         }
         .overlay(
             Group { if isLoading { ProgressView().scaleEffect(1.2) } }
         )
         .task {
             await loadOffer()
+            await checkFavoriteStatus()
         }
     }
 }
@@ -149,16 +156,63 @@ private extension OfferDetailView {
 }
 
 private extension OfferDetailView {
-    var authService: AuthService { AuthService() }
-    
     func contactClub() async {
-        guard let token = UserDefaults.standard.string(forKey: "auth_token") else { return }
+        guard let token = authService.getStoredToken() else { return }
         do {
             // participantId = clubId de l'offre
             let conv = try await api.createConversation(participantId: offer.clubId, token: token)
             // Navigation vers la conversation
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+    
+    func checkFavoriteStatus() async {
+        guard let token = authService.getStoredToken() else {
+            print("⚠️ Pas de token pour vérifier le favori")
+            return
+        }
+        do {
+            let currentOffer = fullOffer ?? offer
+            print("🔍 Vérification favori - Offer ID: \(currentOffer.id)")
+            isFavorite = try await api.checkFavorite(itemType: "offer", itemId: currentOffer.id, token: token)
+            print("✅ Statut favori: \(isFavorite)")
+        } catch {
+            // Si erreur, on laisse isFavorite à false (c'est OK si la table n'existe pas encore)
+            print("❌ Erreur vérification favori: \(error.localizedDescription)")
+            if let apiError = error as? APIError {
+                print("   Type d'erreur API: \(apiError)")
+            }
+        }
+    }
+    
+    func toggleFavorite() async {
+        guard let token = authService.getStoredToken() else {
+            errorMessage = "Vous devez être connecté pour ajouter un favori"
+            return
+        }
+        isLoadingFavorite = true
+        defer { isLoadingFavorite = false }
+        
+        let currentOffer = fullOffer ?? offer
+        
+        do {
+            if isFavorite {
+                print("🗑️ Suppression favori - Offer ID: \(currentOffer.id)")
+                try await api.removeFavorite(itemType: "offer", itemId: currentOffer.id, token: token)
+                isFavorite = false
+                print("✅ Favori supprimé avec succès")
+            } else {
+                print("➕ Ajout favori - Offer ID: \(currentOffer.id)")
+                try await api.addFavorite(itemType: "offer", itemId: currentOffer.id, token: token)
+                isFavorite = true
+                print("✅ Favori ajouté avec succès")
+            }
+            errorMessage = nil // Effacer les erreurs précédentes en cas de succès
+        } catch {
+            let errorMsg = error.localizedDescription
+            print("❌ Erreur toggleFavorite: \(errorMsg)")
+            errorMessage = "Erreur: \(errorMsg)"
         }
     }
 }
