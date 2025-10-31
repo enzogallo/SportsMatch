@@ -23,6 +23,7 @@ router.get('/:id', async (req, res) => {
         level,
         bio,
         profile_image_url,
+        performance_cv,
         club_name,
         club_logo_url,
         club_description,
@@ -45,6 +46,51 @@ router.get('/:id', async (req, res) => {
 
   } catch (error) {
     console.error('User error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get user performance CV
+router.get('/:id/performance', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, performance_cv')
+      .eq('id', id)
+      .single();
+    if (error || !user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ performance: user.performance_cv || null });
+  } catch (error) {
+    console.error('Get performance error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update user performance CV (self only)
+router.put('/:id/performance', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+    if (user.id !== id) {
+      return res.status(403).json({ error: 'Not authorized to update this profile' });
+    }
+    const performance = req.body?.performance;
+    const { data, error } = await supabase
+      .from('users')
+      .update({ performance_cv: performance, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, performance_cv')
+      .single();
+    if (error) {
+      console.error('Error updating performance:', error);
+      return res.status(500).json({ error: 'Failed to update performance' });
+    }
+    res.json({ message: 'Performance updated', performance: data.performance_cv });
+  } catch (error) {
+    console.error('Update performance error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -88,6 +134,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         level,
         bio,
         profile_image_url,
+        performance_cv,
         club_name,
         club_logo_url,
         club_description,

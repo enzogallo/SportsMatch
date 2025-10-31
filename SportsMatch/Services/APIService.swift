@@ -568,6 +568,34 @@ class APIService: ObservableObject {
         return try makeDecoder().decode(UserResponse.self, from: data)
     }
     
+    // MARK: - Performance CV
+    func getUserPerformance(userId: UUID, token: String) async throws -> PerformanceSummary? {
+        let url = URL(string: "\(baseURL)/api/users/\(userId)/performance")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        struct Resp: Codable { let performance: PerformanceSummary? }
+        return try makeDecoder().decode(Resp.self, from: data).performance
+    }
+
+    func updateUserPerformance(userId: UUID, summary: PerformanceSummary, token: String) async throws {
+        let url = URL(string: "\(baseURL)/api/users/\(userId)/performance")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        struct Req: Codable { let performance: PerformanceSummary }
+        request.httpBody = try JSONEncoder().encode(Req(performance: summary))
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+    }
+    
     // MARK: - Favorites Endpoints
     
     func checkFavorite(itemType: String, itemId: UUID, token: String) async throws -> Bool {

@@ -20,6 +20,8 @@ struct OfferDetailView: View {
     @State private var errorMessage: String?
     private let api = APIService.shared
     @EnvironmentObject var authService: AuthService
+    @StateObject private var performanceService = PerformanceService()
+    @State private var performanceSummary: PerformanceSummary?
     
     var body: some View {
         ScrollView {
@@ -93,6 +95,11 @@ struct OfferDetailView: View {
                     contactEmail: nil
                 )
                 
+                // CV express du joueur (si connecté en tant que joueur)
+                if authService.currentUser?.role == .player, let performanceSummary {
+                    PerformanceStatGrid(summary: performanceSummary)
+                }
+
                 // Détails de l'offre
                 OfferDetailsCard(offer: fullOffer ?? offer)
                 
@@ -136,6 +143,8 @@ struct OfferDetailView: View {
         .task {
             await loadOffer()
             await checkFavoriteStatus()
+            let token = authService.getStoredToken()
+            performanceSummary = await performanceService.fetchSummary(forUserId: authService.currentUser?.id, token: token)
         }
     }
 }
