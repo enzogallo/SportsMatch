@@ -31,6 +31,7 @@ struct PerformanceStatCard: View {
 
 struct PerformanceStatGrid: View {
     let summary: PerformanceSummary
+    var sport: Sport? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -39,13 +40,13 @@ struct PerformanceStatGrid: View {
                     .font(.headline)
                     .foregroundColor(.textPrimary)
                 Spacer()
-                AvailabilityBadge(score: summary.availabilityScore)
+                AvailabilityStatusBadge(status: summary.availabilityStatus)
             }
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
                 ForEach(summary.stats, id: \.self) { stat in
                     PerformanceStatCard(
-                        title: stat.label,
+                        title: labelForMetric(stat.key, sport: sport),
                         value: formattedValue(stat),
                         subtitle: stat.period
                     )
@@ -70,27 +71,41 @@ struct PerformanceStatGrid: View {
     }
 }
 
-private struct AvailabilityBadge: View {
-    let score: Int
+    private struct AvailabilityStatusBadge: View {
+    let status: AvailabilityStatus
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "figure.run")
+            Image(systemName: icon)
                 .font(.caption2)
-            Text("\(score)/100")
+            Text(label)
                 .font(.caption2)
                 .fontWeight(.semibold)
         }
         .foregroundColor(.white)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(scoreColor)
+        .background(color)
         .clipShape(Capsule())
     }
-    private var scoreColor: Color {
-        switch score {
-        case 0..<50: return .error
-        case 50..<75: return .warning
-        default: return .success
+    private var label: String {
+        switch status {
+        case .fit: return "Apte"
+        case .returning: return "Retour"
+        case .injured: return "Blessé"
+        }
+    }
+    private var icon: String {
+        switch status {
+        case .fit: return "figure.run"
+        case .returning: return "arrow.counterclockwise"
+        case .injured: return "bandage.fill"
+        }
+    }
+    private var color: Color {
+        switch status {
+        case .fit: return .success
+        case .returning: return .warning
+        case .injured: return .error
         }
     }
 }

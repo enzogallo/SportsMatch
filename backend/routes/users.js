@@ -1,5 +1,5 @@
 const express = require('express');
-const { supabase } = require('../config/database');
+const { supabase, supabaseAdmin } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -85,7 +85,7 @@ router.put('/:id/performance', authenticateToken, async (req, res) => {
     const { sport, performance } = req.body || {};
 
     // Fetch current CV to merge
-    const { data: currentUser } = await supabase
+    const { data: currentUser } = await supabaseAdmin
       .from('users')
       .select('performance_cv')
       .eq('id', id)
@@ -100,7 +100,7 @@ router.put('/:id/performance', authenticateToken, async (req, res) => {
       newCV = performance;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .update({ performance_cv: newCV, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -141,7 +141,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     delete updateData.role;
     delete updateData.created_at;
 
-    const { data: updatedUser, error } = await supabase
+    const { data: updatedUser, error } = await supabaseAdmin
       .from('users')
       .update(updateData)
       .eq('id', id)

@@ -24,16 +24,16 @@ final class PerformanceService: ObservableObject {
         }
     }
 
-    func defaultSummary() -> PerformanceSummary {
+    func defaultSummary(for sport: Sport? = nil) -> PerformanceSummary {
         let stats: [PerformanceStat] = [
-            PerformanceStat(key: .availabilityMinutes, value: 0, unit: "min", label: "Minutes jouées", period: "28j"),
-            PerformanceStat(key: .matchesPlayed, value: 0, unit: "matchs", label: "Matchs", period: "28j"),
-            PerformanceStat(key: .impactScore, value: 0, unit: "pts", label: "Impact", period: "28j"),
-            PerformanceStat(key: .maxSpeedKmh, value: 0, unit: "km/h", label: "Vitesse max", period: "28j"),
-            PerformanceStat(key: .enduranceKm, value: 0, unit: "km", label: "Endurance", period: "28j"),
-            PerformanceStat(key: .disciplineEvents, value: 0, unit: "ev", label: "Discipline", period: "28j")
+            PerformanceStat(key: .availabilityMinutes, value: 0, unit: "min", label: labelForMetric(.availabilityMinutes, sport: sport), period: "28j"),
+            PerformanceStat(key: .matchesPlayed, value: 0, unit: "matchs", label: labelForMetric(.matchesPlayed, sport: sport), period: "28j"),
+            PerformanceStat(key: .decisiveActions, value: 0, unit: "act", label: labelForMetric(.decisiveActions, sport: sport), period: "28j"),
+            PerformanceStat(key: .maxSpeedKmh, value: 0, unit: "km/h", label: labelForMetric(.maxSpeedKmh, sport: sport), period: "28j"),
+            PerformanceStat(key: .trainingVolumeMinPerWeek, value: 0, unit: "min/sem", label: labelForMetric(.trainingVolumeMinPerWeek, sport: sport), period: "28j"),
+            PerformanceStat(key: .penaltiesEvents, value: 0, unit: "év", label: labelForMetric(.penaltiesEvents, sport: sport), period: "28j")
         ]
-        return PerformanceSummary(rolePrimary: nil, availabilityScore: 50, stats: stats)
+        return PerformanceSummary(rolePrimary: nil, level: nil, availabilityStatus: .fit, stats: stats)
     }
 }
 

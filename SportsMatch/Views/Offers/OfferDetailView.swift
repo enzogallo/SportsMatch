@@ -97,7 +97,7 @@ struct OfferDetailView: View {
                 
                 // CV express du joueur (si connecté en tant que joueur)
                 if authService.currentUser?.role == .player, let performanceSummary {
-                    PerformanceStatGrid(summary: performanceSummary)
+                    PerformanceStatGrid(summary: performanceSummary, sport: (fullOffer ?? offer).sport)
                 }
                 
                 // Détails de l'offre

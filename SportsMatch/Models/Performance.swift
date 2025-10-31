@@ -8,12 +8,12 @@
 import Foundation
 
 enum PerformanceMetricKey: String, Codable, CaseIterable, Hashable {
-    case availabilityMinutes // minutes jouées récentes
-    case matchesPlayed       // nombre de matchs
-    case impactScore         // score agrégé (buts/assists/arrêts... mappé par sport)
-    case maxSpeedKmh         // vitesse max
-    case enduranceKm         // distance récente
-    case disciplineEvents    // fautes/cartons/turnovers
+    case availabilityMinutes      // minutes jouées (28j)
+    case matchesPlayed            // matchs/épreuves (28j)
+    case decisiveActions          // actions décisives (28j)
+    case maxSpeedKmh              // vitesse max / perf clé
+    case trainingVolumeMinPerWeek // volume d'entraînement (min/sem)
+    case penaltiesEvents          // pénalités/fautes (28j)
 }
 
 struct PerformanceStat: Codable, Hashable {
@@ -24,9 +24,12 @@ struct PerformanceStat: Codable, Hashable {
     let period: String // ex: "28j", "12m"
 }
 
+enum AvailabilityStatus: String, Codable, CaseIterable, Hashable { case fit, returning, injured }
+
 struct PerformanceSummary: Codable, Hashable {
     let rolePrimary: String?
-    let availabilityScore: Int // 0-100
+    let level: String?
+    let availabilityStatus: AvailabilityStatus
     let stats: [PerformanceStat]
 }
 
