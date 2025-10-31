@@ -99,7 +99,7 @@ struct OfferDetailView: View {
                 if authService.currentUser?.role == .player, let performanceSummary {
                     PerformanceStatGrid(summary: performanceSummary)
                 }
-
+                
                 // Détails de l'offre
                 OfferDetailsCard(offer: fullOffer ?? offer)
                 

@@ -54,6 +54,7 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/performance', async (req, res) => {
   try {
     const { id } = req.params;
+    const { sport } = req.query;
     const { data: user, error } = await supabase
       .from('users')
       .select('id, performance_cv')
@@ -62,7 +63,11 @@ router.get('/:id/performance', async (req, res) => {
     if (error || !user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ performance: user.performance_cv || null });
+    const cv = user.performance_cv || null;
+    if (sport && cv && typeof cv === 'object') {
+      return res.json({ performance: cv[sport] || null });
+    }
+    res.json({ performance: cv });
   } catch (error) {
     console.error('Get performance error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -77,10 +82,27 @@ router.put('/:id/performance', authenticateToken, async (req, res) => {
     if (user.id !== id) {
       return res.status(403).json({ error: 'Not authorized to update this profile' });
     }
-    const performance = req.body?.performance;
+    const { sport, performance } = req.body || {};
+
+    // Fetch current CV to merge
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('performance_cv')
+      .eq('id', id)
+      .single();
+    const currentCV = currentUser?.performance_cv || {};
+
+    let newCV;
+    if (sport) {
+      newCV = { ...currentCV, [sport]: performance };
+    } else {
+      // If no sport provided, replace whole object
+      newCV = performance;
+    }
+
     const { data, error } = await supabase
       .from('users')
-      .update({ performance_cv: performance, updated_at: new Date().toISOString() })
+      .update({ performance_cv: newCV, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('id, performance_cv')
       .single();
@@ -88,7 +110,8 @@ router.put('/:id/performance', authenticateToken, async (req, res) => {
       console.error('Error updating performance:', error);
       return res.status(500).json({ error: 'Failed to update performance' });
     }
-    res.json({ message: 'Performance updated', performance: data.performance_cv });
+    const responsePerformance = sport ? data.performance_cv?.[sport] || null : data.performance_cv;
+    res.json({ message: 'Performance updated', performance: responsePerformance });
   } catch (error) {
     console.error('Update performance error:', error);
     res.status(500).json({ error: 'Internal server error' });

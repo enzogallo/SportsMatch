@@ -569,8 +569,10 @@ class APIService: ObservableObject {
     }
     
     // MARK: - Performance CV
-    func getUserPerformance(userId: UUID, token: String) async throws -> PerformanceSummary? {
-        let url = URL(string: "\(baseURL)/api/users/\(userId)/performance")!
+    func getUserPerformance(userId: UUID, token: String, sport: String? = nil) async throws -> PerformanceSummary? {
+        var components = URLComponents(string: "\(baseURL)/api/users/\(userId)/performance")!
+        if let sport { components.queryItems = [URLQueryItem(name: "sport", value: sport)] }
+        let url = components.url!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -582,14 +584,14 @@ class APIService: ObservableObject {
         return try makeDecoder().decode(Resp.self, from: data).performance
     }
 
-    func updateUserPerformance(userId: UUID, summary: PerformanceSummary, token: String) async throws {
+    func updateUserPerformance(userId: UUID, summary: PerformanceSummary, token: String, sport: String? = nil) async throws {
         let url = URL(string: "\(baseURL)/api/users/\(userId)/performance")!
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        struct Req: Codable { let performance: PerformanceSummary }
-        request.httpBody = try JSONEncoder().encode(Req(performance: summary))
+        struct Req: Codable { let sport: String?; let performance: PerformanceSummary }
+        request.httpBody = try JSONEncoder().encode(Req(sport: sport, performance: summary))
         let (_, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw APIError.invalidResponse
